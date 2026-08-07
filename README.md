@@ -5,7 +5,7 @@ An autonomous flight control system built around **ArduPilot** and **pymavlink**
 
 The core of the project is a custom Python `Drone` class that wraps pymavlink to handle mode switching, arming, takeoff, mission upload, and autonomous flight execution.
 
-In the future, I am hoping to create a drone swarm, with the mothership running on an Nvidia Jetson Orin Nano and directing the swarm.
+In the future, I want to add a video feed with image recognition so the drone can be controlled via hand signals. The ultimate goal is a drone swarm, with a mothership running on an Nvidia Jetson Orin Nano directing the rest of the fleet.
 
 ## Features
 
@@ -77,8 +77,10 @@ Update the `tcp` connection string and mission file `path` in `drone.py` to matc
 - [ ] Physical build: Holybro X650 frame, Pixhawk 6C, 6S power system
 - [ ] Raspberry Pi 5 companion computer (headless Ubuntu Server) bridging to the Pixhawk over UART
 - [ ] Battery failsafe handling via `SYS_STATUS.voltage_battery`
-- [ ] Migration to Jetson Orin Nano + ROS2/MAVROS for onboard compute
 - [ ] Real-world flight testing (CAA Flyer ID / Operator ID obtained)
+- [ ] Onboard video feed + image recognition for hand-signal control
+- [ ] Migration to Jetson Orin Nano + ROS2/MAVROS for onboard compute
+- [ ] Drone swarm — Jetson Orin Nano mothership directing multiple vehicles
 
 ## Notes
 
