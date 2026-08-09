@@ -3,6 +3,7 @@ from pymavlink import mavutil
 # Gazebo   gz sim -v4 -r iris_runway.sdf
 # SITL     sim_vehicle.py -v ArduCopter -f gazebo-iris --model JSON --console -L Brockenhurst
 # QGC      ~/Applications/QGroundControl.AppImage
+
 # FRAME_CLASS 1 = Quad
 # FRAME_TYPE 1 = X
 
@@ -100,6 +101,15 @@ class Drone():
             )
 
 
+    # Function to clear loaded waypoints
+    def clear_mission(self):
+        self.vehicle.mav.mission_clear_all_send(
+            self.vehicle.target_system,
+            self.vehicle.target_component,
+            0
+        )
+
+
     def drone_takeoff(self, target_altitude):
         self.vehicle.mav.command_long_send( # pymavlink function for sending action commands
             self.vehicle.target_system, # which drone to send it to, important for swarms
@@ -129,6 +139,8 @@ drone_1.upload_mission(drone_1.load_waypoint(path))
 drone_1.mode_auto()
 
 
+
+
 disarmed_count = 0 # Intermitten failures due to stale messages
 
 # Overseer loop to check mission progress, or to force RTL if battery low
@@ -154,3 +166,5 @@ while True:
     #    drone_1.mode_rtl()
     #    print("Battery Low. Emergency RTL")
     #    break
+
+drone_1.clear_mission()
