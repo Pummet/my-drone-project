@@ -159,6 +159,8 @@ while True:
     heartbeat_msg = drone_1.vehicle.recv_match(type = "HEARTBEAT", blocking = True)
 
     # Sys and Comp 1 is the drone. Filtering out other heartbeats
+    # base_mode is a bitmask, 128 = armed, 0 = disarmed. Many commands in the same byte, bit 7 is 
+    # specifically armed/disarmed. Using bitwise AND to check if bit 7 is set.
     if heartbeat_msg.get_srcSystem() == 1 and heartbeat_msg.get_srcComponent() == 1:
         armed = bool(heartbeat_msg.base_mode & 128)
         
