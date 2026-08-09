@@ -1,5 +1,12 @@
 from pymavlink import mavutil
 
+# GIT PULL BEFORE STARTING
+
+# SAVE, then:
+# git add .
+# git commit -m "describe what changed"
+# git push
+
 # Gazebo   gz sim -v4 -r iris_runway.sdf
 # SITL     sim_vehicle.py -v ArduCopter -f gazebo-iris --model JSON --console -L Brockenhurst
 # QGC      ~/Applications/QGroundControl.AppImage
