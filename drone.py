@@ -15,16 +15,17 @@ from pymavlink import mavutil
 # FRAME_TYPE 1 = X
 
 
-# testing testing testing
-# testing again
+# self.vehicle -> pymavlink connection object, high level helper functions
+#                 eg. arducopter_arm(), set_mode_apm()
+# self.vehicle.mav -> pymavlink raw MAVLink message senders
+#                     eg. mission_count_send(), mission_item_int_send()
+# self.method_name -> my own methods
 
 class Drone():
     def __init__(self, tcp):
         self.tcp = tcp # TCP is passed in when drone is made
         self.vehicle = mavutil.mavlink_connection(tcp) # Sending TCP connection port to mavlink
         self.vehicle.wait_heartbeat() # waiting for connection confirmation before continuing
-        # self.vehicle is for calling pymavlink methods
-        # self.mode_guided is for calling my methods
 
         self.vehicle.mav.request_data_stream_send(
             self.vehicle.target_system,
@@ -42,6 +43,9 @@ class Drone():
     def mode_auto(self):
         print("Switching to auto...")
         self.vehicle.set_mode_apm("AUTO")
+        self.vehicle.mission_ack(
+
+        )
 
 
     def mode_rtl(self):
