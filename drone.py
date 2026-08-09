@@ -1,4 +1,5 @@
 from pymavlink import mavutil
+import time
 
 # GIT PULL BEFORE STARTING
 
@@ -43,9 +44,20 @@ class Drone():
     def mode_auto(self):
         print("Switching to auto...")
         self.vehicle.set_mode_apm("AUTO")
-        self.vehicle.mission_ack(
+        print("Mission started!")
 
-        )
+        last_print = 0
+
+        while True:
+            miss_prog = self.vehicle.recv_match(type = "MISSION_CURRENT", blocking = True)
+
+            now = time.time()
+            if miss_prog.seq >= 2 and (now - last_print) >= 1:
+                print(f"Current waypoint: {miss_prog.seq - 1} of {miss_prog.total - 2}")
+                last_print = now
+            if miss_prog.seq == miss_prog.total:
+                print("Mission complete!")
+                break
 
 
     def mode_rtl(self):
@@ -130,18 +142,22 @@ class Drone():
             target_altitude
         )
 
+        last_print = 0
         while True:
             alt_msg = self.vehicle.recv_match(type="GLOBAL_POSITION_INT", blocking = True)
 
-            altitude = alt_msg.relative_alt / 1000
-            print(f"Altitude: {altitude:.1f}m")
+            now = time.time()
+            if now - last_print >= 1:
+                altitude = alt_msg.relative_alt / 1000
+                print(f"Altitude: {altitude:.1f}m")
+                last_print = now
             
             if altitude >= target_altitude * 0.95:
                 print("Target altitude reached")
                 break
 
 
-path = "/home/pummet/Documents/Projects/Drone/missions/daryl_coop.txt"
+path = "/home/pummet/Documents/Projects/my-drone-project/missions/short.txt"
 drone_1 = Drone("tcp:127.0.0.1:5763") # 127.0.0.1 is my pc (local), 5763 is the port opened by ArduPilot
 drone_1.mode_guided()
 drone_1.drone_arm()
