@@ -56,7 +56,7 @@ class Drone():
                 print(f"Current waypoint: {miss_prog.seq - 1} of {miss_prog.total - 2}")
                 last_print = now
             if miss_prog.seq == miss_prog.total:
-                print("Mission complete!")
+                print("Mission complete! Returning home...")
                 break
 
 
@@ -169,6 +169,7 @@ drone_1.mode_auto()
 
 
 disarmed_count = 0 # Intermitten failures due to stale messages
+armed = True
 
 # Overseer loop to check mission progress, or to force RTL if battery low
 while True:
@@ -186,7 +187,7 @@ while True:
         disarmed_count = 0
 
     if disarmed_count >= 3:
-        print("Mission complete - Vehicle disarmed.")
+        print("Vehicle disarmed.")
         break
 
     batt_msg = drone_1.vehicle.recv_match(type = "SYS_STATUS", blocking = True)
