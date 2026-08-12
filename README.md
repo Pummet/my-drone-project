@@ -1,4 +1,3 @@
-[README(1).md](https://github.com/user-attachments/files/30827089/README.1.md)
 # Autonomous Drone Control System
 
 First year Data Science & AI student messing around with drones as a personal project — don't expect anything polished, just documenting the journey as I go! First time using Linux, connecting programs, and using GitHub!
