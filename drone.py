@@ -22,6 +22,7 @@ import time
 #                     eg. mission_count_send(), mission_item_int_send()
 # self.method_name -> my own methods
 
+
 class Drone():
     def __init__(self, tcp):
         self.tcp = tcp # TCP is passed in when drone is made
