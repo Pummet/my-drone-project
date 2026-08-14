@@ -16,8 +16,8 @@ import time
 # FRAME_TYPE 1 = X
 
 
-# self.vehicle -> pymavlink connection object, high level helper functions
-#                 eg. arducopter_arm(), set_mode_apm()
+# self.vehicle     -> pymavlink connection object, high level helper functions
+#                     eg. arducopter_arm(), set_mode_apm()
 # self.vehicle.mav -> pymavlink raw MAVLink message senders
 #                     eg. mission_count_send(), mission_item_int_send()
 # self.method_name -> my own methods
@@ -27,6 +27,7 @@ class Drone():
         self.tcp = tcp # TCP is passed in when drone is made
         self.vehicle = mavutil.mavlink_connection(tcp) # Sending TCP connection port to mavlink
         self.vehicle.wait_heartbeat() # waiting for connection confirmation before continuing
+        print(f"Heartbeat from system {self.vehicle.target_system}, component {self.vehicle.target_component}")
 
         self.vehicle.mav.request_data_stream_send(
             self.vehicle.target_system,
@@ -37,8 +38,10 @@ class Drone():
         )
 
 
+
     def mode_guided(self):
         self.vehicle.set_mode_apm("GUIDED")
+
 
 
     def mode_auto(self):
@@ -52,24 +55,22 @@ class Drone():
             miss_prog = self.vehicle.recv_match(type = "MISSION_CURRENT", blocking = True)
 
             now = time.time()
-            if miss_prog.seq >= 2 and (now - last_print) >= 1:
-                print(f"Current waypoint: {miss_prog.seq - 1} of {miss_prog.total - 2}")
-                last_print = now
-            if miss_prog.seq == miss_prog.total:
-                print("Mission complete! Returning home...")
-                break
+
+            if miss_prog.seq != 0: # Fault when seq and total = 0 as WPs first load
+
+                if miss_prog.seq >= 2 and (now - last_print) >= 1:
+                    print(f"Current waypoint: {miss_prog.seq - 1} of {miss_prog.total - 2}")
+                    last_print = now
+
+                if miss_prog.seq == miss_prog.total:
+                    print("Mission complete! Returning home...")
+                    break
+
 
 
     def mode_rtl(self):
         self.vehicle.set_mode_apm("RTL")
 
-
-    def mode_stabilize(self):
-        self.vehicle.set_mode_apm("STABILIZE")
-
-
-    def mode_land(self):
-        self.vehicle.set_mode_apm("LAND")
 
 
     def drone_arm(self):
@@ -77,6 +78,7 @@ class Drone():
         print("Arming...")
         self.vehicle.motors_armed_wait()
         print("Armed!")
+
 
 
     def load_waypoint(self, path):
@@ -95,6 +97,7 @@ class Drone():
                 waypoints.append([command, lat, lon, alt]) # waypoints is a list of lists
             print("Waypoints loaded!")
             return waypoints
+
 
 
     def upload_mission(self, waypoints):
@@ -124,6 +127,56 @@ class Drone():
             )
 
 
+
+    def is_armed(self):
+
+        while True:
+            heartbeat_msg = self.vehicle.recv_match(type="HEARTBEAT", blocking=True)
+            if heartbeat_msg.get_srcSystem() == 1 and heartbeat_msg.get_srcComponent() == 1:
+                # base_mode is a bitmask, 128 = armed, 0 = disarmed. Many commands in the same byte, bit 7 is 
+                # specifically armed/disarmed. Using bitwise AND to check if bit 7 is set.
+                return bool(heartbeat_msg.base_mode & 128)
+
+
+
+    def check_battery(self, threshold = 20500):
+        batt_msg = self.vehicle.recv_match(type = "BATTERY_STATUS", blocking = True)
+
+        total_voltage = sum(batt_msg.voltages[:6]) # I'm using a 6 cell lipo
+
+        if total_voltage <= threshold: # 20.5V is ~3.5V/ cell (6S LiPo)
+            self.mode_rtl()
+            print("LOW BATTERY! Returning home...")
+            return True
+        
+        return False
+
+
+
+    def monitor_until_disarmed(self):
+        disarmed_count = 0 # Intermitten failures due to stale messages
+
+        # Overseer loop to check mission progress, or to force RTL if battery low
+        while True:
+            armed = self.is_armed()
+
+            if armed == True:
+                disarmed_count = 0
+
+            elif armed == False:
+                disarmed_count += 1
+
+            if disarmed_count >= 3:
+                print("Vehicle Disarmed.")
+                break
+
+            print(disarmed_count)
+
+            # self.check_battery() # Checking battery on each loop
+
+
+
+
     # Function to clear loaded waypoints
     def clear_mission(self):
         self.vehicle.mav.mission_clear_all_send(
@@ -131,6 +184,7 @@ class Drone():
             self.vehicle.target_component,
             0
         )
+
 
 
     def drone_takeoff(self, target_altitude):
@@ -143,6 +197,7 @@ class Drone():
         )
 
         last_print = 0
+
         while True:
             alt_msg = self.vehicle.recv_match(type="GLOBAL_POSITION_INT", blocking = True)
 
@@ -155,46 +210,3 @@ class Drone():
             if altitude >= target_altitude * 0.95:
                 print("Target altitude reached")
                 break
-
-
-path = "/home/pummet/Documents/Projects/my-drone-project/missions/short.txt"
-drone_1 = Drone("tcp:127.0.0.1:5763") # 127.0.0.1 is my pc (local), 5763 is the port opened by ArduPilot
-drone_1.mode_guided()
-drone_1.drone_arm()
-drone_1.drone_takeoff(10)
-drone_1.upload_mission(drone_1.load_waypoint(path))
-drone_1.mode_auto()
-
-
-
-
-disarmed_count = 0 # Intermitten failures due to stale messages
-armed = True
-
-# Overseer loop to check mission progress, or to force RTL if battery low
-while True:
-    heartbeat_msg = drone_1.vehicle.recv_match(type = "HEARTBEAT", blocking = True)
-
-    # Sys and Comp 1 is the drone. Filtering out other heartbeats
-    # base_mode is a bitmask, 128 = armed, 0 = disarmed. Many commands in the same byte, bit 7 is 
-    # specifically armed/disarmed. Using bitwise AND to check if bit 7 is set.
-    if heartbeat_msg.get_srcSystem() == 1 and heartbeat_msg.get_srcComponent() == 1:
-        armed = bool(heartbeat_msg.base_mode & 128)
-        
-    if not armed:
-        disarmed_count += 1
-    else:
-        disarmed_count = 0
-
-    if disarmed_count >= 3:
-        print("Vehicle disarmed.")
-        break
-
-    batt_msg = drone_1.vehicle.recv_match(type = "SYS_STATUS", blocking = True)
-
-    #if batt_msg.voltage_battery <= 19800:
-    #    drone_1.mode_rtl()
-    #    print("Battery Low. Emergency RTL")
-    #    break
-
-drone_1.clear_mission()
