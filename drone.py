@@ -56,6 +56,8 @@ class Drone():
 
             now = time.time()
 
+            # self.check_battery() # Commented out as no battery
+
             if miss_prog.seq != 0: # Fault when seq and total = 0 as WPs first load
 
                 if miss_prog.seq >= 2 and (now - last_print) >= 1:
