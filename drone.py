@@ -196,6 +196,10 @@ class Drone():
     def check_battery(self, threshold = 14000): # 3.5v/Cell = 14v, need to land, 13.2v damages battery
         voltage = self.get_battery_voltage()
 
+        if voltage is None:
+            print("Unable to retrieve battery voltage.")
+            return False
+
         if voltage <= threshold: # 14V is ~3.5V/ cell (4S LiPo)
             self.mode_rtl()
             print(f"LOW BATTERY!{voltage}mV, Returning home...")
@@ -262,11 +266,11 @@ class Drone():
 
         while True:
             alt_msg = self.vehicle.recv_match(type="GLOBAL_POSITION_INT", blocking = True)
-
+            altitude = alt_msg.relative_alt / 1000
+            
             now = time.time()
 
             if now - last_print >= 1:
-                altitude = alt_msg.relative_alt / 1000
                 print(f"Altitude: {altitude:.1f}m")
                 last_print = now
             
