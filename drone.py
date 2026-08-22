@@ -142,12 +142,12 @@ class Drone():
 
 
 
-    def check_battery(self, threshold = 20500):
+    def check_battery(self, threshold = 14000): # 3.5v/Cell = 14v, need to land, 13.2v damages battery
         batt_msg = self.vehicle.recv_match(type = "BATTERY_STATUS", blocking = True)
 
-        total_voltage = sum(batt_msg.voltages[:6]) # I'm using a 6 cell lipo
+        total_voltage = sum(batt_msg.voltages[:4]) # I'm using a 4 cell lipo
 
-        if total_voltage <= threshold: # 20.5V is ~3.5V/ cell (6S LiPo)
+        if total_voltage <= threshold: # 14V is ~3.5V/ cell (4S LiPo)
             self.mode_rtl()
             print("LOW BATTERY! Returning home...")
             return True
@@ -172,8 +172,6 @@ class Drone():
             if disarmed_count >= 3:
                 print("Vehicle Disarmed.")
                 break
-
-            print(disarmed_count)
 
             # self.check_battery() # Checking battery on each loop
 
@@ -205,6 +203,7 @@ class Drone():
             alt_msg = self.vehicle.recv_match(type="GLOBAL_POSITION_INT", blocking = True)
 
             now = time.time()
+            
             if now - last_print >= 1:
                 altitude = alt_msg.relative_alt / 1000
                 print(f"Altitude: {altitude:.1f}m")
