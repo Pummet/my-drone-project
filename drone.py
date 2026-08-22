@@ -146,9 +146,10 @@ class Drone():
 
 
 
+    # Function to move the drone to specific coordinates
     def goto_coords(self, lat, lon, alt):
         self.mode_guided()
-        
+
         if not self.is_armed():
             print("Drone is not armed. Cannot go to coordinates.")
             return
@@ -174,6 +175,7 @@ class Drone():
 
 
 
+    # Function to check if the drone is armed
     def is_armed(self):
 
         while True:
@@ -190,6 +192,7 @@ class Drone():
 
 
 
+    # Function to check battery voltage and return to home if below threshold
     def check_battery(self, threshold = 14000): # 3.5v/Cell = 14v, need to land, 13.2v damages battery
         voltage = self.get_battery_voltage()
 
@@ -202,6 +205,7 @@ class Drone():
     
 
 
+    # Function to get battery voltage
     def get_battery_voltage(self):
         batt_msg = self.vehicle.recv_match(type = "BATTERY_STATUS", blocking = True, timeout = 2)
 
@@ -213,6 +217,7 @@ class Drone():
 
 
 
+    # Function to monitor the drone until it is disarmed
     def monitor_until_disarmed(self):
         disarmed_count = 0 # Intermitten failures due to stale messages
 
