@@ -131,10 +131,58 @@ class Drone():
 
 
 
+    def get_position(self):
+        pos_msg = self.vehicle.recv_match(type = "GLOBAL_POSITION_INT", blocking = True)
+
+        if pos_msg is None:
+            print("No position message received.")
+            return None, None, None
+
+        lat = pos_msg.lat / 1e7
+        lon = pos_msg.lon / 1e7
+        alt = pos_msg.relative_alt / 1000
+
+        return lat, lon, alt
+
+
+
+    def goto_coords(self, lat, lon, alt):
+        self.mode_guided()
+        
+        if not self.is_armed():
+            print("Drone is not armed. Cannot go to coordinates.")
+            return
+
+        self.vehicle.mav.set_position_target_global_int_send(
+            0,
+            self.vehicle.target_system,
+            self.vehicle.target_component,
+            mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT_INT,
+            0b0000110111111000, # type mask (only positions enabled)
+            int(lat * 1e7),
+            int(lon * 1e7),
+            alt,
+            0, 0, 0, 0, 0, 0, 0, 0
+        )
+
+        print(f"Moving to - Lat: {lat}, Lon: {lon}, Alt: {alt}m")
+
+
+
+    def distance_to_home(self):
+        pass
+
+
+
     def is_armed(self):
 
         while True:
-            heartbeat_msg = self.vehicle.recv_match(type="HEARTBEAT", blocking=True)
+            heartbeat_msg = self.vehicle.recv_match(type = "HEARTBEAT", blocking = True, timeout = 2)
+
+            if heartbeat_msg is None:
+                print("No heartbeat message received.")
+                return None
+
             if heartbeat_msg.get_srcSystem() == 1 and heartbeat_msg.get_srcComponent() == 1:
                 # base_mode is a bitmask, 128 = armed, 0 = disarmed. Many commands in the same byte, bit 7 is 
                 # specifically armed/disarmed. Using bitwise AND to check if bit 7 is set.
@@ -143,16 +191,25 @@ class Drone():
 
 
     def check_battery(self, threshold = 14000): # 3.5v/Cell = 14v, need to land, 13.2v damages battery
-        batt_msg = self.vehicle.recv_match(type = "BATTERY_STATUS", blocking = True)
+        voltage = self.get_battery_voltage()
 
-        total_voltage = sum(batt_msg.voltages[:4]) # I'm using a 4 cell lipo
-
-        if total_voltage <= threshold: # 14V is ~3.5V/ cell (4S LiPo)
+        if voltage <= threshold: # 14V is ~3.5V/ cell (4S LiPo)
             self.mode_rtl()
-            print("LOW BATTERY! Returning home...")
+            print(f"LOW BATTERY!{voltage}mV, Returning home...")
             return True
         
         return False
+    
+
+
+    def get_battery_voltage(self):
+        batt_msg = self.vehicle.recv_match(type = "BATTERY_STATUS", blocking = True, timeout = 2)
+
+        if batt_msg is None:
+            print("No battery status message received.")
+            return None
+        
+        return sum(batt_msg.voltages[:4]) # I'mDrone using a 4 cell lipo (4S)
 
 
 
@@ -174,7 +231,6 @@ class Drone():
                 break
 
             # self.check_battery() # Checking battery on each loop
-
 
 
 
@@ -203,7 +259,7 @@ class Drone():
             alt_msg = self.vehicle.recv_match(type="GLOBAL_POSITION_INT", blocking = True)
 
             now = time.time()
-            
+
             if now - last_print >= 1:
                 altitude = alt_msg.relative_alt / 1000
                 print(f"Altitude: {altitude:.1f}m")
