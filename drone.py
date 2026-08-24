@@ -276,5 +276,5 @@ class Drone():
                 last_print = now
             
             if altitude >= target_altitude * 0.95:
-                print("Target altitude reached")
+                print("Target altitude reached.")
                 break
