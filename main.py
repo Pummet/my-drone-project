@@ -1,5 +1,4 @@
-
-from drone import Drone
+from drone import *
 
 
 def create_drone(tcp):
@@ -16,6 +15,9 @@ def drone_arm_mission(drone, path):
 
 tcp = "tcp:127.0.0.1:5763"
 path = "/home/pummet/Documents/Projects/my-drone-project/missions/short.txt"
+
+# /dev/ttyAMA0   is connection to the Pi's UART pins
+
 
 drone_1 = create_drone(tcp)
 drone_arm_mission(drone_1, path)
