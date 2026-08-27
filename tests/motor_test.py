@@ -14,9 +14,13 @@ num_motors = 4
 
 
 def connect():
-    connection = mavutil.mavlink_connection(connection_string, baud=baud_rate)
+    connection = mavutil.mavlink_connection(connection_string, baud = baud_rate)
     connection.wait_heartbeat()
     print(f"Heartbeat from system {connection.target_system}")
+
+    if connection.target_component != 1:
+        print(f"  WARNING: target_component was {connection.target_component}, forcing to 1 (autopilot)")
+        connection.target_component = 1
 
     return connection
 
@@ -36,13 +40,16 @@ def test_motor(connection, motor_number, throttle_percent, test_duration_secs):
         0, 0, 0, 0  # Unused parameters
     )
 
-    ack = connection.recv_match(type='COMMAND_ACK', blocking=True, timeout = 5)
+    ack = connection.recv_match(type='COMMAND_ACK', blocking = True, timeout = 5)
 
     if ack is None:
         print(f"No ACK recieved for motor {motor_number}. Check Connection")
 
     elif ack.result == mavutil.mavlink.MAV_RESULT_ACCEPTED:
-        print(f"Motor {motor_number} test command accepted.")
+        src_sys = connection.mav_msg_srcsys if hasattr(connection, 'mav_msg_srcsys') else '?'
+        src_comp = connection.mav_msg_srccomp if hasattr(connection, 'mav_msg_srccomp') else '?'
+        print(f"  Motor {motor_number} test accepted. (ACK from sys={src_sys}, comp={src_comp})")
+
 
     else:
         print(f"Motor {motor_number} test command failed with result: {ack.result}")
@@ -50,10 +57,11 @@ def test_motor(connection, motor_number, throttle_percent, test_duration_secs):
     time.sleep(test_duration_secs + 1) # Pause between each motor
 
 
-def main():
-    print("=" * 20)
+
+def __main__():
+    print("=" * 50)
     print("MOTOR TEST - CONFIRM PROPS ARE OFF")
-    print("=" * 20)
+    print("=" * 50)
     start = input("Type 'yes' to confirm props are removed and area is clear: ")
 
     if start.strip().lower() != "yes":
@@ -70,4 +78,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    __main__()
