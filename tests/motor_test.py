@@ -4,7 +4,7 @@
 from pymavlink import mavutil
 import time
 
-connection_string = "/dev/serial0"
+connection_string = "/dev/ttyAMA0"
 baud_rate = 57600 # Set in QGroundControl parameters
 
 throttle_percent = 10
