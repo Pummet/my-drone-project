@@ -8,7 +8,6 @@ from pymavlink import mavutil
 import time
 
 # --- Connection settings ---
-# Update this to match your setup:
 #   USB on Pi:        '/dev/ttyACM0'
 #   TELEM3 UART:      '/dev/ttyAMA0'
 
@@ -67,7 +66,7 @@ def test_motor(conn, motor_number, throttle_percent, duration_sec):
     else:
         print(f"  Motor {motor_number} test FAILED — result code: {ack.result}")
 
-    time.sleep(duration_sec / 2)
+    time.sleep(4)
 
 
 
@@ -76,7 +75,7 @@ def main():
     print("MOTOR TEST — CONFIRM PROPS ARE OFF")
     print("=" * 50)
     confirm = input("Type 'yes' to confirm props are removed and area is clear: ")
-    
+
     if confirm.strip().lower() != 'yes':
         print("Aborted.")
         return
