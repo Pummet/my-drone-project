@@ -18,10 +18,6 @@ def connect():
     connection.wait_heartbeat()
     print(f"Heartbeat from system {connection.target_system}")
 
-    if connection.target_component != 1:
-        print(f"  WARNING: target_component was {connection.target_component}, forcing to 1 (autopilot)")
-        connection.target_component = 1
-
     return connection
 
 
@@ -46,10 +42,7 @@ def test_motor(connection, motor_number, throttle_percent, test_duration_secs):
         print(f"No ACK recieved for motor {motor_number}. Check Connection")
 
     elif ack.result == mavutil.mavlink.MAV_RESULT_ACCEPTED:
-        src_sys = connection.mav_msg_srcsys if hasattr(connection, 'mav_msg_srcsys') else '?'
-        src_comp = connection.mav_msg_srccomp if hasattr(connection, 'mav_msg_srccomp') else '?'
-        print(f"  Motor {motor_number} test accepted. (ACK from sys={src_sys}, comp={src_comp})")
-
+        print(f"Motor {motor_number} test command accepted.")
 
     else:
         print(f"Motor {motor_number} test command failed with result: {ack.result}")
