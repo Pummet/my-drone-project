@@ -17,7 +17,7 @@ import time
 #   USB on Pi:        '/dev/ttyACM0'
 #   TELEM3 UART:       '/dev/serial0' (or '/dev/ttyAMA0')
 #   Baud must match SERIAL5_BAUD if using TELEM3
-CONNECTION_STRING = '/dev/serial0'
+CONNECTION_STRING = '/dev/ttyAMA0'
 BAUD_RATE = 57600
 
 THROTTLE_PERCENT = 10       # 0-100
