@@ -13,7 +13,7 @@ import time
 #   On Desktop:       'COM8'
 
 
-connection_string = 'COM8'
+connection_string = '/dev/ttyAMA0'
 baud = 57600
 
 throttle_percent = 10       # 0-100
