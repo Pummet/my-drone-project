@@ -1,5 +1,6 @@
 from pymavlink import mavutil
 import time
+import sys
 
 # GIT PULL BEFORE STARTING
 
@@ -27,7 +28,7 @@ class Drone():
     def __init__(self, connection_string, baud = None):
         self.tcp = connection_string # TCP is passed in when drone is made
         self.baud = baud
-        self.vehicle = mavutil.mavlink_connection(connection_string, baud = baud) # Sending TCP connection port to mavlink
+        self.vehicle = mavutil.mavlink_connection(self.tcp, self.baud) # Sending TCP connection port to mavlink
         self.vehicle.wait_heartbeat() # waiting for connection confirmation before continuing
         print(f"Heartbeat from system {self.vehicle.target_system}, component {self.vehicle.target_component}")
 
@@ -43,6 +44,11 @@ class Drone():
 
     def mode_guided(self):
         self.vehicle.set_mode_apm("GUIDED")
+
+
+
+    def mode_loiter(self):
+        self.vehicle.set_mode_apm("LOITER")
 
 
 
@@ -72,6 +78,11 @@ class Drone():
 
 
 
+    def mode_land(self):
+        self.vehicle.set_mode_apm("LAND")
+
+
+
     def mode_rtl(self):
         self.vehicle.set_mode_apm("RTL")
 
@@ -82,6 +93,14 @@ class Drone():
         print("Arming...")
         self.vehicle.motors_armed_wait()
         print("Armed!")
+
+
+
+    def drone_disarm(self):
+        self.vehicle.arducopter_disarm()
+        print("Disarming...")
+        self.vehicle.motors_disarmed_wait()
+        print("Disarmed!")
 
 
 
@@ -255,6 +274,7 @@ class Drone():
 
 
     def drone_takeoff(self, target_altitude):
+
         self.vehicle.mav.command_long_send( # pymavlink function for sending action commands
             self.vehicle.target_system, # which drone to send it to, important for swarms
             self.vehicle.target_component, # which component on the drone, usually autopilot

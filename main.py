@@ -1,8 +1,13 @@
 from drone import *
+import settings
 import sys
+
+
 
 def create_drone(connection):
     return Drone(connection)
+
+
 
 def drone_arm_mission(drone, path):
     drone.mode_guided()
@@ -13,12 +18,13 @@ def drone_arm_mission(drone, path):
     drone.monitor_until_disarmed()
 
 
+
 # This function checks if Pi or desktop is running the code
 # Don't need to manually change everytime!!!
 def pi_or_sim():
     if len(sys.argv) > 1 and sys.argv[1] == "pi":
-        connection = "/dev/ttyAMA0"
-        baud = 57600
+        connection = settings.connection_string
+        baud = settings.baud_rate
         drone = create_drone(connection, baud)
 
     else:
@@ -30,7 +36,5 @@ def pi_or_sim():
 
 
 drone_1 = pi_or_sim()
-path = "/home/pummet/Documents/Projects/my-drone-project/missions/airfield.txt"
-
-drone_arm_mission(drone_1, path)
+drone_arm_mission(drone_1, settings.path)
 drone_1.clear_mission()
