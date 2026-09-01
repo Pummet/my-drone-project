@@ -26,9 +26,9 @@ import sys
 
 class Drone():
     def __init__(self, connection_string, baud = None):
-        self.tcp = connection_string # TCP is passed in when drone is made
+        self.connection = connection_string # TCP is passed in when drone is made
         self.baud = baud
-        self.vehicle = mavutil.mavlink_connection(self.tcp, self.baud) # Sending TCP connection port to mavlink
+        self.vehicle = mavutil.mavlink_connection(self.connection, baud = self.baud) # Sending TCP connection port to mavlink
         self.vehicle.wait_heartbeat() # waiting for connection confirmation before continuing
         print(f"Heartbeat from system {self.vehicle.target_system}, component {self.vehicle.target_component}")
 
