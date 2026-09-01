@@ -1,7 +1,7 @@
 # --- Connection settings ---
-#   USB on Pi:        '/dev/ttyACM0'
 #   TELEM3 UART:      '/dev/ttyAMA0'
-#   On Desktop:       'COM8'
+#   On Radio:         'COM8'
+#   On SITL           'tcp:127.0.0.1:5763'
 
 connection_string = '/dev/ttyAMA0'
 baud_rate = 57600

@@ -21,6 +21,7 @@ def drone_arm_mission(drone, path):
 
 # This function checks if Pi or desktop is running the code
 # Don't need to manually change everytime!!!
+
 def pi_or_sim():
     if len(sys.argv) > 1 and sys.argv[1] == "pi":
         connection = settings.connection_string
