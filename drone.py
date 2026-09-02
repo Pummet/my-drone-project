@@ -1,6 +1,5 @@
 from pymavlink import mavutil
 import time
-import sys
 
 # GIT PULL BEFORE STARTING
 
@@ -8,14 +7,6 @@ import sys
 # git add .
 # git commit -m "describe what changed"
 # git push
-
-# Gazebo   gz sim -v4 -r iris_runway.sdf
-# SITL     sim_vehicle.py -v ArduCopter -f gazebo-iris --model JSON --console -L Brockenhurst
-# QGC      ~/Applications/QGroundControl.AppImage
-
-# FRAME_CLASS 1 = Quad
-# FRAME_TYPE 1 = X
-
 
 # self.vehicle     -> pymavlink connection object, high level helper functions
 #                     eg. arducopter_arm(), set_mode_apm()
@@ -26,12 +17,13 @@ import sys
 
 class Drone():
     def __init__(self, connection_string, baud = None):
-        self.connection = connection_string # TCP is passed in when drone is made
+        self.connection = connection_string
         self.baud = baud
-        self.vehicle = mavutil.mavlink_connection(self.connection, baud = self.baud) # Sending TCP connection port to mavlink
+        self.vehicle = mavutil.mavlink_connection(self.connection, baud = self.baud) # Sending connection string to MavLink
         self.vehicle.wait_heartbeat() # waiting for connection confirmation before continuing
         print(f"Heartbeat from system {self.vehicle.target_system}, component {self.vehicle.target_component}")
 
+        # Requesting data from FC
         self.vehicle.mav.request_data_stream_send(
             self.vehicle.target_system,
             self.vehicle.target_component,
@@ -52,6 +44,7 @@ class Drone():
 
 
 
+    # Auto mode starts to execute loaded mission
     def mode_auto(self):
         print("Switching to auto...")
         self.vehicle.set_mode_apm("AUTO")
@@ -106,6 +99,7 @@ class Drone():
 
     def load_waypoint(self, path):
         print(f"Loading from: {path}")
+
         with open(path) as f: # opening file
             next(f) # skips the first line
 
@@ -118,16 +112,18 @@ class Drone():
                 lon = float(values[9])
                 alt = float(values[10])
                 waypoints.append([command, lat, lon, alt]) # waypoints is a list of lists
+
             print("Waypoints loaded!")
+
             return waypoints
 
 
 
     def upload_mission(self, waypoints):
-        self.vehicle.mav.mission_count_send( # need to tell drone how many waypoints first
+        self.vehicle.mav.mission_count_send(
             self.vehicle.target_system, # which drone
             self.vehicle.target_component, # which component, usually automatic
-            len(waypoints),
+            len(waypoints), # How many waypoints
             0 # 0 means main mission
         )
 
@@ -298,3 +294,8 @@ class Drone():
             if altitude >= target_altitude * 0.95:
                 print("Target altitude reached.")
                 break
+
+
+
+    def close(self):
+        self.vehicle.close()
