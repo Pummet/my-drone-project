@@ -18,8 +18,8 @@ test_duration_sec = 2       # how long each motor spins
 
 def connect():
     # Setting up drone connection
-    print(f"Connecting to {settings.connection_string} at {settings.baud} baud...")
-    vehicle = mavutil.mavlink_connection(settings.connection_string, settings.baud)
+    print(f"Connecting to {settings.connection_string} at {settings.baud_rate} baud...")
+    vehicle = mavutil.mavlink_connection(settings.connection_string, settings.baud_rate)
 
     vehicle.wait_heartbeat()
     print(f"Heartbeat received from system {vehicle.target_system}.")
@@ -60,9 +60,7 @@ def test_motor(vehicle, motor_number, throttle_percent, duration_sec):
         0,
         throttle_percent,
         duration_sec,
-        0,
-        0,
-        0
+        0,0,0
     )
 
     ack = vehicle.recv_match(type = 'COMMAND_ACK', blocking = True, timeout = 5)

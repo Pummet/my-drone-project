@@ -1,5 +1,5 @@
 '''
-LAUNCH DRONE TO A SET ALTITUDE, LOITER, THEN LAND
+LAUNCH DRONE TO A SET ALTITUDE, HOVER, THEN LAND
 '''
 
 import sys, os, time
@@ -11,7 +11,7 @@ import drone, settings
 
 
 
-drone_1 = drone.Drone(settings.connection_string, settings.baud)
+drone_1 = drone.Drone(settings.connection_string, settings.baud_rate)
 
 # Determines if run from CLI or Sim
 if len(sys.argv) > 1:

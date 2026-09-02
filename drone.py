@@ -33,15 +33,17 @@ class Drone():
         )
 
 
+    # Closes the connection
+    def close(self):
+        self.vehicle.close()
+
 
     def mode_guided(self):
         self.vehicle.set_mode_apm("GUIDED")
 
 
-
     def mode_loiter(self):
         self.vehicle.set_mode_apm("LOITER")
-
 
 
     # Auto mode starts to execute loaded mission
@@ -70,15 +72,12 @@ class Drone():
                     break
 
 
-
     def mode_land(self):
         self.vehicle.set_mode_apm("LAND")
 
 
-
     def mode_rtl(self):
         self.vehicle.set_mode_apm("RTL")
-
 
 
     def drone_arm(self):
@@ -88,13 +87,12 @@ class Drone():
         print("Armed!")
 
 
-
     def drone_disarm(self):
+
         self.vehicle.arducopter_disarm()
         print("Disarming...")
         self.vehicle.motors_disarmed_wait()
         print("Disarmed!")
-
 
 
     def load_waypoint(self, path):
@@ -116,7 +114,6 @@ class Drone():
             print("Waypoints loaded!")
 
             return waypoints
-
 
 
     def upload_mission(self, waypoints):
@@ -146,7 +143,6 @@ class Drone():
             )
 
 
-
     def get_position(self):
         pos_msg = self.vehicle.recv_match(type = "GLOBAL_POSITION_INT", blocking = True)
 
@@ -159,7 +155,6 @@ class Drone():
         alt = pos_msg.relative_alt / 1000
 
         return lat, lon, alt
-
 
 
     # Function to move the drone to specific coordinates
@@ -185,13 +180,11 @@ class Drone():
         print(f"Moving to - Lat: {lat}, Lon: {lon}, Alt: {alt}m")
 
 
-
     def distance_to_home(self):
         pass
 
 
-
-    # Function to check if the drone is armed
+    # Returns True if armed, False if not, and None if no message
     def is_armed(self):
 
         while True:
@@ -207,6 +200,49 @@ class Drone():
                 return bool(heartbeat_msg.base_mode & 128)
 
 
+    def move_in_square(self):
+        moves = ((10, 0),(0, 10),(-10, 0),(0, -10))
+
+        for i, (dx, dy) in enumerate(moves):
+            self.vehicle.mav.set_position_target_local_ned_send(
+                0,
+                self.vehicle.target_system,
+                self.vehicle.target_component,
+                12, # mav_frame_body_frd x: forward, y: right, z: down
+                0b0000111111111000, # position_target_typemask
+                dx, # X
+                dy, # Y   
+                0,  # Z (Negative is up!)
+                0,0,0,0,0,0,0,0,0
+            )
+
+            start_pos = self.vehicle.recv_match(type = "LOCAL_POSITION_NED", blocking = True, timeout = 2)                     
+
+            if start_pos is None:
+                print("No Starting Position Recieved. Aborting...")
+                return
+
+            start_time = time.time()
+
+            while True:
+                time.sleep(0.5) # Relax the CPU spam
+
+                if time.time() - start_time > 15: # Stops from hanging if no GPS
+                   print(f"Corner {i+1} timed out, moving on.")
+                   break
+
+                new_pos = self.vehicle.recv_match(type = "LOCAL_POSITION_NED", blocking = True, timeout = 2)
+
+                if new_pos is None:
+                    continue
+                
+                distance_x = abs(new_pos.x - start_pos.x)
+                distance_y = abs(new_pos.y - start_pos.y)
+
+                if distance_x >= abs(dx) * 0.95 and distance_y >= abs(dy) * 0.95:
+                    print(f"Corner {i+1} reached!")
+                    break
+
 
     # Function to check battery voltage and return to home if below threshold
     def check_battery(self, threshold = 14000): # 3.5v/Cell = 14v, need to land, 13.2v damages battery
@@ -221,7 +257,6 @@ class Drone():
             print(f"LOW BATTERY!{voltage}mV, Returning home...")
     
 
-
     # Function to get battery voltage
     def get_battery_voltage(self):
         batt_msg = self.vehicle.recv_match(type = "BATTERY_STATUS", blocking = True, timeout = 2)
@@ -232,12 +267,10 @@ class Drone():
         return sum(batt_msg.voltages[:4]) # I'mDrone using a 4 cell lipo (4S)
 
 
-
     # Function to monitor the drone until it is disarmed
     def monitor_until_disarmed(self):
         disarmed_count = 0 # Intermitten failures due to stale messages
 
-        # Overseer loop to check mission progress, or to force RTL if battery low
         while True:
             armed = self.is_armed()
 
@@ -251,9 +284,6 @@ class Drone():
                 print("Vehicle Disarmed.")
                 break
 
-            # self.check_battery() # Checking battery on each loop
-
-
 
     # Function to clear loaded waypoints
     def clear_mission(self):
@@ -262,7 +292,6 @@ class Drone():
             self.vehicle.target_component,
             0
         )
-
 
 
     def drone_takeoff(self, target_altitude):
@@ -290,8 +319,3 @@ class Drone():
             if altitude >= target_altitude * 0.95:
                 print("Target altitude reached.")
                 break
-
-
-
-    def close(self):
-        self.vehicle.close()

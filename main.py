@@ -1,10 +1,10 @@
-from drone import *
+from drone import Drone
 import settings, sys
 
 
 
-def create_drone(connection):
-    return Drone(connection)
+def create_drone(connection, baud = None):
+    return Drone(connection, baud)
 
 
 
