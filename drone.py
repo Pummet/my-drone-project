@@ -214,14 +214,11 @@ class Drone():
 
         if voltage is None:
             print("Unable to retrieve battery voltage.")
-            return False
+            return
 
         if voltage <= threshold: # 14V is ~3.5V/ cell (4S LiPo)
             self.mode_rtl()
             print(f"LOW BATTERY!{voltage}mV, Returning home...")
-            return True
-        
-        return False
     
 
 
@@ -230,7 +227,6 @@ class Drone():
         batt_msg = self.vehicle.recv_match(type = "BATTERY_STATUS", blocking = True, timeout = 2)
 
         if batt_msg is None:
-            print("No battery status message received.")
             return None
         
         return sum(batt_msg.voltages[:4]) # I'mDrone using a 4 cell lipo (4S)
