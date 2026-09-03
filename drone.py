@@ -1,5 +1,5 @@
 from pymavlink import mavutil
-import time
+import time, math
 
 # GIT PULL BEFORE STARTING
 
@@ -36,6 +36,17 @@ class Drone():
     # Closes the connection
     def close(self):
         self.vehicle.close()
+
+
+    def get_altitude(self):
+            alt_msg = self.vehicle.recv_match(type="GLOBAL_POSITION_INT", blocking = True)
+            return alt_msg.relative_alt / 1000
+
+
+    def guided_arm_takeoff(self, target_altitude):
+        self.mode_guided()
+        self.drone_arm()
+        self.drone_takeoff(target_altitude) 
 
 
     def mode_guided(self):
@@ -87,14 +98,45 @@ class Drone():
         print("Armed!")
 
 
+    def drone_takeoff(self, target_altitude):
+
+        self.vehicle.mav.command_long_send( # pymavlink function for sending action commands
+            self.vehicle.target_system, # which drone to send it to, important for swarms
+            self.vehicle.target_component, # which component on the drone, usually autopilot
+            mavutil.mavlink.MAV_CMD_NAV_TAKEOFF, # MAVLink command ID
+            0, 0, 0, 0, 0, 0, 0, # First 0 means no confirmation needed, next 6 not used for takeoff
+            target_altitude
+        )
+
+        last_print = 0
+
+        while True:
+            altitude = self.get_altitude()
+            
+            now = time.time()
+
+            if now - last_print >= 1:
+                print(f"Altitude: {altitude:.1f}m")
+                last_print = now
+            
+            if altitude >= target_altitude * 0.95:
+                print("Target altitude reached.")
+                break
+
+
     def drone_disarm(self):
+        while self.is_armed() is not False:
+            altitude = self.get_altitude()
 
-        self.vehicle.arducopter_disarm()
-        print("Disarming...")
-        self.vehicle.motors_disarmed_wait()
-        print("Disarmed!")
+            if altitude < 0.3:
+                self.vehicle.arducopter_disarm()
+                print("Disarming...")
+                self.vehicle.motors_disarmed_wait()
+                print("Disarmed!")
+                break
 
 
+    # Reads waypoints from a .txt file and returns them as a list of lists
     def load_waypoint(self, path):
         print(f"Loading from: {path}")
 
@@ -114,8 +156,9 @@ class Drone():
             print("Waypoints loaded!")
 
             return waypoints
+        
 
-
+    # Function to upload waypoints list to the drone
     def upload_mission(self, waypoints):
         self.vehicle.mav.mission_count_send(
             self.vehicle.target_system, # which drone
@@ -143,7 +186,16 @@ class Drone():
             )
 
 
-    def get_position(self):
+    # Function to clear loaded waypoints
+    def clear_mission(self):
+        self.vehicle.mav.mission_clear_all_send(
+            self.vehicle.target_system,
+            self.vehicle.target_component,
+            0
+        )
+
+
+    def get_position_gps(self):
         pos_msg = self.vehicle.recv_match(type = "GLOBAL_POSITION_INT", blocking = True)
 
         if pos_msg is None:
@@ -158,7 +210,7 @@ class Drone():
 
 
     # Function to move the drone to specific coordinates
-    def goto_coords(self, lat, lon, alt):
+    def goto_coords_gps(self, lat, lon, alt):
         self.mode_guided()
 
         if not self.is_armed():
@@ -178,6 +230,10 @@ class Drone():
         )
 
         print(f"Moving to - Lat: {lat}, Lon: {lon}, Alt: {alt}m")
+
+
+    def goto_coords_ned(self, x, y, z):
+        pass
 
 
     def distance_to_home(self):
@@ -200,23 +256,51 @@ class Drone():
                 return bool(heartbeat_msg.base_mode & 128)
 
 
+    # ArduPilot has a guided mode 3 second time out for target_local_ned
+    # This function is needed to spam the target_local_ned command to keep the drone moving
+    # If not, the drone stops as it thinks the companion computer has died
+    def send_target_ned(self, north, east, down):
+        self.vehicle.mav.set_position_target_local_ned_send(
+            0,
+            self.vehicle.target_system,
+            self.vehicle.target_component,
+            7, # mav_frame_local_offset_ned x: north, y: east, z: down
+            0b0000111111111000, # position_target_typemask (bitmask)
+            north, # X
+            east, # Y
+            down,  # Z (Negative is up!)
+            0,0,0,0,0,0,0,0,0
+        )
+
+
+    def move_circle(self, radius = 10):
+        degrees = 0
+
+        # Plotting points around a circle
+        coords = []
+        while degrees < 360:
+            angle_radian = math.radians(degrees)
+            x = radius * math.cos(angle_radian)
+            y = radius * math.sin(angle_radian)
+            coords.append((x, y))
+            degrees += 10
+
+        
+
+
+
+
+
+
+
     def move_square(self):
-        moves = ((10, 0),(0, 10),(-10, 0),(0, -10))
+        coords = ((10, 0, 0),(0, 10, 0),(-10, 0, 0),(0, -10, 0))
 
-        for i, (dx, dy) in enumerate(moves):
-            self.vehicle.mav.set_position_target_local_ned_send(
-                0,
-                self.vehicle.target_system,
-                self.vehicle.target_component,
-                12, # mav_frame_body_frd x: forward, y: right, z: down
-                0b0000111111111000, # position_target_typemask (bitmask)
-                dx, # X
-                dy, # Y   
-                0,  # Z (Negative is up!)
-                0,0,0,0,0,0,0,0,0
-            )
+        for i, (dx, dy, dz) in enumerate(coords):
 
-            start_pos = self.vehicle.recv_match(type = "LOCAL_POSITION_NED", blocking = True, timeout = 2)                     
+            self.send_target_ned(dx, dy, dz)
+
+            start_pos = self.vehicle.recv_match(type = "LOCAL_POSITION_NED", blocking = True, timeout = 2)
 
             if start_pos is None:
                 print("No Starting Position Recieved. Aborting...")
@@ -226,6 +310,8 @@ class Drone():
 
             while True:
                 time.sleep(0.5) # Relax the CPU spam
+
+                self.send_target_ned(dx, dy, dz)
 
                 if time.time() - start_time > 15: # Stops from hanging if no GPS
                    print(f"Corner {i+1} timed out, moving on.")
@@ -282,40 +368,4 @@ class Drone():
 
             if disarmed_count >= 3:
                 print("Vehicle Disarmed.")
-                break
-
-
-    # Function to clear loaded waypoints
-    def clear_mission(self):
-        self.vehicle.mav.mission_clear_all_send(
-            self.vehicle.target_system,
-            self.vehicle.target_component,
-            0
-        )
-
-
-    def drone_takeoff(self, target_altitude):
-
-        self.vehicle.mav.command_long_send( # pymavlink function for sending action commands
-            self.vehicle.target_system, # which drone to send it to, important for swarms
-            self.vehicle.target_component, # which component on the drone, usually autopilot
-            mavutil.mavlink.MAV_CMD_NAV_TAKEOFF, # MAVLink command ID
-            0, 0, 0, 0, 0, 0, 0, # First 0 means no confirmation needed, next 6 not used for takeoff
-            target_altitude
-        )
-
-        last_print = 0
-
-        while True:
-            alt_msg = self.vehicle.recv_match(type="GLOBAL_POSITION_INT", blocking = True)
-            altitude = alt_msg.relative_alt / 1000
-            
-            now = time.time()
-
-            if now - last_print >= 1:
-                print(f"Altitude: {altitude:.1f}m")
-                last_print = now
-            
-            if altitude >= target_altitude * 0.95:
-                print("Target altitude reached.")
                 break

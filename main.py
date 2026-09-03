@@ -9,9 +9,7 @@ def create_drone(connection, baud = None):
 
 
 def drone_arm_mission(drone, path):
-    drone.mode_guided()
-    drone.drone_arm()
-    drone.drone_takeoff(10)
+    drone.guided_arm_takeoff(10)
     drone.upload_mission(drone.load_waypoint(path))
     drone.mode_auto()
     drone.monitor_until_disarmed()
@@ -34,6 +32,7 @@ def pi_or_sim():
 
 
 
-drone_1 = pi_or_sim()
-drone_arm_mission(drone_1, settings.path)
-drone_1.clear_mission()
+if __name__ == "__main__":
+    drone_1 = pi_or_sim()
+    drone_arm_mission(drone_1, settings.path)
+    drone_1.clear_mission()

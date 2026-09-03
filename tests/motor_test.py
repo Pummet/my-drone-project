@@ -8,24 +8,12 @@ import sys, os, time
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from pymavlink import mavutil
-import settings
+import settings, drone
 
 
 
 throttle_percent = 10       # 0-100
 test_duration_sec = 2       # how long each motor spins
-
-
-def connect():
-    # Setting up drone connection
-    print(f"Connecting to {settings.connection_string} at {settings.baud_rate} baud...")
-    vehicle = mavutil.mavlink_connection(settings.connection_string, settings.baud_rate)
-
-    vehicle.wait_heartbeat()
-    print(f"Heartbeat received from system {vehicle.target_system}.")
-
-    return vehicle
-
 
 
 def main():
@@ -39,7 +27,7 @@ def main():
         print("Aborted.")
         return
 
-    vehicle = connect()
+    vehicle = drone.Drone(settings.connection_string, settings.baud_rate)
 
     for motor in range(1, settings.num_motors + 1):
         test_motor(vehicle, motor, throttle_percent, test_duration_sec)
