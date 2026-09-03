@@ -63,7 +63,7 @@ class Drone():
 
             if miss_prog.seq != 0: # Fault when seq and total = 0 as WPs first load
 
-                if miss_prog.seq >= 2 and (now - last_print) >= 1:
+                if miss_prog.seq >= 2 and (now - last_print) >= 2:
                     print(f"Current waypoint: {miss_prog.seq - 1} of {miss_prog.total - 2}")
                     last_print = now
 
@@ -200,7 +200,7 @@ class Drone():
                 return bool(heartbeat_msg.base_mode & 128)
 
 
-    def move_in_square(self):
+    def move_square(self):
         moves = ((10, 0),(0, 10),(-10, 0),(0, -10))
 
         for i, (dx, dy) in enumerate(moves):
@@ -209,7 +209,7 @@ class Drone():
                 self.vehicle.target_system,
                 self.vehicle.target_component,
                 12, # mav_frame_body_frd x: forward, y: right, z: down
-                0b0000111111111000, # position_target_typemask
+                0b0000111111111000, # position_target_typemask (bitmask)
                 dx, # X
                 dy, # Y   
                 0,  # Z (Negative is up!)
@@ -264,7 +264,7 @@ class Drone():
         if batt_msg is None:
             return None
         
-        return sum(batt_msg.voltages[:4]) # I'mDrone using a 4 cell lipo (4S)
+        return sum(batt_msg.voltages[:4]) # My drone uses a 4 cell lipo (4S)
 
 
     # Function to monitor the drone until it is disarmed
