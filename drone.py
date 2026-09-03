@@ -264,15 +264,15 @@ class Drone():
             0,
             self.vehicle.target_system,
             self.vehicle.target_component,
-            7, # mav_frame_local_offset_ned x: north, y: east, z: down
+            7, # mav_frame_local_offset_ned
             0b0000111111111000, # position_target_typemask (bitmask)
             north, # X
-            east, # Y
+            east,  # Y
             down,  # Z (Negative is up!)
             0,0,0,0,0,0,0,0,0
         )
 
-
+    # WIP
     def move_circle(self, radius = 10):
         degrees = 0
 
@@ -292,7 +292,7 @@ class Drone():
 
 
 
-
+    # Doesnt work! send_target_ned is adding 10 meters every loop.....
     def move_square(self):
         coords = ((10, 0, 0),(0, 10, 0),(-10, 0, 0),(0, -10, 0))
 
@@ -330,7 +330,7 @@ class Drone():
                     break
 
 
-    # Function to check battery voltage and return to home if below threshold
+    # Function to check battery voltage and RTL if below threshold
     def check_battery(self, threshold = 14000): # 3.5v/Cell = 14v, need to land, 13.2v damages battery
         voltage = self.get_battery_voltage()
 
