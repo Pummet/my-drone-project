@@ -38,14 +38,10 @@ class Drone():
         self.vehicle.close()
 
 
-    def get_altitude(self):
-            alt_msg = self.vehicle.recv_match(type="GLOBAL_POSITION_INT", blocking = True)
-            return alt_msg.relative_alt / 1000
-
-
     def guided_arm_takeoff(self, target_altitude):
         self.mode_guided()
         self.drone_arm()
+        time.sleep(1)
         self.drone_takeoff(target_altitude) 
 
 
@@ -98,8 +94,19 @@ class Drone():
         print("Armed!")
 
 
-    def drone_takeoff(self, target_altitude):
+    def drone_disarm(self):
+        while self.is_armed() is not False:
+            altitude = self.get_altitude()
 
+            if altitude < 0.3:
+                self.vehicle.arducopter_disarm()
+                print("Disarming...")
+                self.vehicle.motors_disarmed_wait()
+                print("Disarmed!")
+                break
+
+
+    def drone_takeoff(self, target_altitude):
         self.vehicle.mav.command_long_send( # pymavlink function for sending action commands
             self.vehicle.target_system, # which drone to send it to, important for swarms
             self.vehicle.target_component, # which component on the drone, usually autopilot
@@ -121,18 +128,6 @@ class Drone():
             
             if altitude >= target_altitude * 0.95:
                 print("Target altitude reached.")
-                break
-
-
-    def drone_disarm(self):
-        while self.is_armed() is not False:
-            altitude = self.get_altitude()
-
-            if altitude < 0.3:
-                self.vehicle.arducopter_disarm()
-                print("Disarming...")
-                self.vehicle.motors_disarmed_wait()
-                print("Disarmed!")
                 break
 
 
@@ -209,6 +204,22 @@ class Drone():
         return lat, lon, alt
 
 
+    def get_position_ned(self):
+        while True:
+            current_pos = self.vehicle.recv_match(type = "LOCAL_POSITION_NED", blocking = True, timeout = 2)
+
+            if current_pos is None:
+                print("No position message received.")
+                continue
+
+            return current_pos.x, current_pos.y, current_pos.z  
+     
+
+    def get_altitude(self):
+            alt_msg = self.vehicle.recv_match(type="GLOBAL_POSITION_INT", blocking = True)
+            return alt_msg.relative_alt / 1000
+
+    
     # Function to move the drone to specific coordinates
     def goto_coords_gps(self, lat, lon, alt):
         self.mode_guided()
@@ -232,8 +243,20 @@ class Drone():
         print(f"Moving to - Lat: {lat}, Lon: {lon}, Alt: {alt}m")
 
 
-    def goto_coords_ned(self, x, y, z):
-        pass
+    # Function to send local NED coordinates to the drone
+    # These are relevant to home position (0,0,0) in meters.
+    def goto_coords_ned(self, north, east, down):
+        self.vehicle.mav.set_position_target_local_ned_send(
+            0,
+            self.vehicle.target_system,
+            self.vehicle.target_component,
+            mavutil.mavlink.MAV_FRAME_LOCAL_NED,
+            0b0000111111111000, # position_target_typemask (bitmask)
+            north, # X
+            east,  # Y
+            down,  # Z (Negative is up!)
+            0,0,0,0,0,0,0,0,0
+        )
 
 
     def distance_to_home(self):
@@ -254,23 +277,7 @@ class Drone():
                 # base_mode is a bitmask, 128 = armed, 0 = disarmed. Many commands in the same byte, bit 7 is 
                 # specifically armed/disarmed. Using bitwise AND to check if bit 7 is set.
                 return bool(heartbeat_msg.base_mode & 128)
-
-
-    # ArduPilot has a guided mode 3 second time out for target_local_ned
-    # This function is needed to spam the target_local_ned command to keep the drone moving
-    # If not, the drone stops as it thinks the companion computer has died
-    def send_target_ned(self, north, east, down):
-        self.vehicle.mav.set_position_target_local_ned_send(
-            0,
-            self.vehicle.target_system,
-            self.vehicle.target_component,
-            7, # mav_frame_local_offset_ned
-            0b0000111111111000, # position_target_typemask (bitmask)
-            north, # X
-            east,  # Y
-            down,  # Z (Negative is up!)
-            0,0,0,0,0,0,0,0,0
-        )
+        
 
     # WIP
     def move_circle(self, radius = 10):
@@ -292,41 +299,34 @@ class Drone():
 
 
 
-    # Doesnt work! send_target_ned is adding 10 meters every loop.....
-    def move_square(self):
-        coords = ((10, 0, 0),(0, 10, 0),(-10, 0, 0),(0, -10, 0))
+    # Function to move the drone in a 10m x 10m square.
+    def move_square(self, size = 15):
+        coords = ((size, 0),(0, size),(-size, 0),(0, -size))
 
-        for i, (dx, dy, dz) in enumerate(coords):
+        for i, (dx, dy) in enumerate(coords):
 
-            self.send_target_ned(dx, dy, dz)
+            start_pos_x, start_pos_y, start_pos_z = self.get_position_ned()
 
-            start_pos = self.vehicle.recv_match(type = "LOCAL_POSITION_NED", blocking = True, timeout = 2)
-
-            if start_pos is None:
+            if start_pos_x is None:
                 print("No Starting Position Recieved. Aborting...")
                 return
+
+            self.goto_coords_ned(start_pos_x + dx, start_pos_y + dy, start_pos_z)
 
             start_time = time.time()
 
             while True:
-                time.sleep(0.5) # Relax the CPU spam
+                if time.time() - start_time > 20: # Stops from hanging if no GPS
+                    print(f"Corner {i+1} timed out, moving on.")
+                    break
 
-                self.send_target_ned(dx, dy, dz)
+                new_pos_x, new_pos_y, _ = self.get_position_ned()
 
-                if time.time() - start_time > 15: # Stops from hanging if no GPS
-                   print(f"Corner {i+1} timed out, moving on.")
-                   break
-
-                new_pos = self.vehicle.recv_match(type = "LOCAL_POSITION_NED", blocking = True, timeout = 2)
-
-                if new_pos is None:
-                    continue
-                
-                distance_x = abs(new_pos.x - start_pos.x)
-                distance_y = abs(new_pos.y - start_pos.y)
+                distance_x = abs(new_pos_x - start_pos_x)
+                distance_y = abs(new_pos_y - start_pos_y)
 
                 if distance_x >= abs(dx) * 0.95 and distance_y >= abs(dy) * 0.95:
-                    print(f"Corner {i+1} reached!")
+                    print(f"Corner {i+1} reached.")
                     break
 
 
