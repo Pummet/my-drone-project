@@ -38,7 +38,7 @@ class Drone():
         self.vehicle.close()
 
 
-    def guided_arm_takeoff(self, target_altitude):
+    def guided_arm_takeoff(self, target_altitude = 10):
         self.mode_guided()
         self.drone_arm()
         time.sleep(1)
@@ -204,6 +204,7 @@ class Drone():
         return lat, lon, alt
 
 
+    # Function to get local NED coordinates from drone, home is (0,0,0)
     def get_position_ned(self):
         while True:
             current_pos = self.vehicle.recv_match(type = "LOCAL_POSITION_NED", blocking = True, timeout = 2)
@@ -213,14 +214,15 @@ class Drone():
                 continue
 
             return current_pos.x, current_pos.y, current_pos.z  
-     
 
+     
+    # Function that returns drone altitude in meters
     def get_altitude(self):
             alt_msg = self.vehicle.recv_match(type="GLOBAL_POSITION_INT", blocking = True)
             return alt_msg.relative_alt / 1000
 
     
-    # Function to move the drone to specific coordinates
+    # Function to move the drone to specific GPS coordinates
     def goto_coords_gps(self, lat, lon, alt):
         self.mode_guided()
 
@@ -279,27 +281,29 @@ class Drone():
                 return bool(heartbeat_msg.base_mode & 128)
         
 
-    # WIP
+    # Jittery, velocity command would probably be better here
     def move_circle(self, radius = 10):
         degrees = 0
 
-        # Plotting points around a circle
-        coords = []
-        while degrees < 360:
-            angle_radian = math.radians(degrees)
-            x = radius * math.cos(angle_radian)
-            y = radius * math.sin(angle_radian)
-            coords.append((x, y))
-            degrees += 10
+        if not self.is_armed():
+            print("Drone is not armed. Cannot move in a circle.")
+            return
 
-        
+        else:
+            coords = []
+            # Plotting points around a circle
+            while degrees <= 360:
+                angle_radian = math.radians(degrees)
+                x = radius * math.cos(angle_radian)
+                y = radius * math.sin(angle_radian)
+                coords.append((x, y))
+                degrees += 10
+
+            self.send_and_monitor_position_ned(coords, 10)
 
 
-    # Function to move the drone in a square.
-    def move_square(self, size = 15):
-        coords = ((size, 0),(0, size),(-size, 0),(0, -size))
-
-        for i, (dx, dy) in enumerate(coords):
+    def send_and_monitor_position_ned(self, coords, timeout = None):
+        for i, (dx, dy, dz) in enumerate(coords):
 
             start_pos_x, start_pos_y, start_pos_z = self.get_position_ned()
 
@@ -307,23 +311,31 @@ class Drone():
                 print("No Starting Position Recieved. Aborting...")
                 return
 
-            self.goto_coords_ned(start_pos_x + dx, start_pos_y + dy, start_pos_z)
+            self.goto_coords_ned(dx, dy, start_pos_z)
 
             start_time = time.time()
 
             while True:
-                if time.time() - start_time > 20: # Stops from hanging if no GPS
-                    print(f"Corner {i+1} timed out, moving on.")
-                    break
+                if timeout is not None:
+                    if time.time() - start_time > timeout:
+                        break
 
-                new_pos_x, new_pos_y, _ = self.get_position_ned()
+                new_pos_x, new_pos_y, new_pos_z = self.get_position_ned()
 
                 distance_x = abs(new_pos_x - start_pos_x)
                 distance_y = abs(new_pos_y - start_pos_y)
+                distance_z = abs(new_pos_z - start_pos_z)
 
                 if distance_x >= abs(dx) * 0.95 and distance_y >= abs(dy) * 0.95:
-                    print(f"Corner {i+1} reached.")
                     break
+
+
+    # Function to move the drone in a square.
+    # Relative to home position
+    def move_square(self, size = 15):
+        coords = ((size, 0, 0),(0, size, 0),(-size, 0, 0),(0, -size, 0), (size, 0, 0))
+
+        self.send_and_monitor_position_ned(coords, 20)
 
 
     # Function to check battery voltage and RTL if below threshold

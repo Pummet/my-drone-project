@@ -13,8 +13,8 @@ import main, settings
 drone_1 = main.create_drone(settings.connection_string, settings.baud_rate)
 
 
-drone_1.guided_arm_takeoff(10)
-drone_1.move_square()
+drone_1.guided_arm_takeoff()
+drone_1.move_square(30)
 time.sleep(3)
 drone_1.mode_rtl()
 drone_1.drone_disarm()

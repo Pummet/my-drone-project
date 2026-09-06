@@ -3,6 +3,8 @@ DUMPING GROUND FOR SMALL TESTS!
 '''
 
 import math
+import matplotlib
+matplotlib.use('Agg') 
 import matplotlib.pyplot as plt
 
 radius = 10
