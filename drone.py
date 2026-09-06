@@ -296,7 +296,8 @@ class Drone():
                 angle_radian = math.radians(degrees)
                 x = radius * math.cos(angle_radian)
                 y = radius * math.sin(angle_radian)
-                coords.append((x, y))
+                z = 0
+                coords.append((x, y, z))
                 degrees += 10
 
             self.send_and_monitor_position_ned(coords, 10)
