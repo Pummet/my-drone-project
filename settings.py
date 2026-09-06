@@ -4,10 +4,19 @@
 # QGC      ~/Applications/QGroundControl.AppImage
 
 
-# --- Connection settings ---
+########## Pi to FC settings ##########
 #   TELEM3 UART:      '/dev/ttyAMA0'
 #   On Radio:         'COM8'
 #   On SITL           'tcp:127.0.0.1:5763'
+
+
+########## Computer to Pi #############
+#   Toggle field:      sudo wifi-toggle.sh ap
+#   Toggle home:       sudo wifi-toggle.sh home
+
+#   Home WiFi:         ssh pummet@drone-pi.local
+#   In the field AP:   ssh pummet@192.168.4.1
+
 
 connection_string = 'tcp:127.0.0.1:5763'
 baud_rate = 57600

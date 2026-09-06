@@ -243,7 +243,7 @@ class Drone():
         print(f"Moving to - Lat: {lat}, Lon: {lon}, Alt: {alt}m")
 
 
-    # Function to send local NED coordinates to the drone
+    # Function to send local NED coordinates to the drone, this is TRUE NORTH
     # These are relevant to home position (0,0,0) in meters.
     def goto_coords_ned(self, north, east, down):
         self.vehicle.mav.set_position_target_local_ned_send(
@@ -295,11 +295,7 @@ class Drone():
         
 
 
-
-
-
-
-    # Function to move the drone in a 10m x 10m square.
+    # Function to move the drone in a square.
     def move_square(self, size = 15):
         coords = ((size, 0),(0, size),(-size, 0),(0, -size))
 
@@ -338,7 +334,7 @@ class Drone():
             print("Unable to retrieve battery voltage.")
             return
 
-        if voltage <= threshold: # 14V is ~3.5V/ cell (4S LiPo)
+        elif voltage <= threshold: # 14V is ~3.5V/ cell (4S LiPo)
             self.mode_rtl()
             print(f"LOW BATTERY!{voltage}mV, Returning home...")
     
