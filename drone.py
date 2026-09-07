@@ -223,7 +223,7 @@ class Drone():
 
     
     # Function to move the drone to specific GPS coordinates
-    def goto_coords_gps(self, lat, lon, alt):
+    def send_coords_gps(self, lat, lon, alt):
         self.mode_guided()
 
         if not self.is_armed():
@@ -247,7 +247,7 @@ class Drone():
 
     # Function to send local NED coordinates to the drone, this is TRUE NORTH
     # These are relevant to home position (0,0,0) in meters.
-    def goto_coords_ned(self, north, east, down):
+    def send_coords_ned(self, north, east, down):
         self.vehicle.mav.set_position_target_local_ned_send(
             0,
             self.vehicle.target_system,
@@ -281,7 +281,7 @@ class Drone():
                 return bool(heartbeat_msg.base_mode & 128)
         
 
-    # Jittery, velocity command would probably be better here
+    # Jittery, velocity command would probably be better here?
     def move_circle(self, radius = 10):
         start_x, start_y, start_z = self.get_position_ned()
         degrees = 0
@@ -304,33 +304,48 @@ class Drone():
             self.send_and_monitor_position_ned(coords)
 
 
-    def send_and_monitor_position_ned(self, coords, timeout = None):
-        for i, (dx, dy, dz) in enumerate(coords):
+    def move_circle_velocity(self, vel_z = 0, radius = 20, duration = 100, meters_sec = 5):
+        start_time = time.time()
 
-            start_pos_x, start_pos_y, start_pos_z = self.get_position_ned()
+        angle = 1
 
-            if start_pos_x is None:
-                print("No Starting Position Recieved. Aborting...")
-                return
+        while time.time() - start_time <= duration:
+            # math.sin and cos expects radians input
+            angle_radian = math.radians(angle)
+            # x = r * cos(radian) and y = r * sin(radian) gives me a point on the circle from that angle
+            # Swapping cos/sin rotates that by 90 degrees and gives me a direction
+            # a line just touching the circle perpendicular to the line from the centre
+            x = radius * math.sin(angle_radian)
+            y = radius * math.cos(angle_radian)
+            # Inverting x or y here dictates CW or CCW motion around the circle
+            y = -y
 
-            self.goto_coords_ned(dx, dy, start_pos_z)
+            magnitude = math.sqrt(x ** 2 + y ** 2)
+            unit_vector = [x / magnitude, y / magnitude]
 
-            start_time = time.time()
+            vel_x = unit_vector[0] * meters_sec
+            vel_y = unit_vector[1] * meters_sec
 
-            while True:
-                if timeout is not None:
-                    if time.time() - start_time > timeout:
-                        break
+            self.vehicle.mav.set_position_target_local_ned_send(
+                0,
+                self.vehicle.target_system,
+                self.vehicle.target_component,
+                mavutil.mavlink.MAV_FRAME_LOCAL_NED,
+                0b0000011111000111,
+                0, 0, 0, # XYZ Position
+                vel_x,
+                vel_y,
+                vel_z,
+                0, 0, 0, # XYZ Acceleration
+                0, 0 # Yaw and Yaw Rate
+            )
 
-                new_pos_x, new_pos_y, new_pos_z = self.get_position_ned()
+            time.sleep(0.1)
 
-                distance_x = abs(new_pos_x - start_pos_x)
-                distance_y = abs(new_pos_y - start_pos_y)
-                distance_z = abs(new_pos_z - start_pos_z)
+            angle += 5
 
-                if distance_x >= abs(dx) * 0.95 and distance_y >= abs(dy) * 0.95:
-                    print(f"point {i + 1} reached")
-                    break
+            if angle > 360:
+                angle = 1
 
 
     # Function to move the drone in a square.
@@ -350,6 +365,35 @@ class Drone():
             full_coords.append((current_x, current_y, current_z))
 
         self.send_and_monitor_position_ned(full_coords, 20)
+
+    
+    def send_and_monitor_position_ned(self, coords, timeout = None):
+        for i, (dx, dy, dz) in enumerate(coords):
+
+            _, __, start_pos_z = self.get_position_ned()
+
+            if start_pos_z is None:
+                print("No Starting Position Recieved. Aborting...")
+                return
+
+            self.send_coords_ned(dx, dy, start_pos_z)
+
+            start_time = time.time()
+
+            while True:
+                if timeout is not None:
+                    if time.time() - start_time > timeout:
+                        break
+
+                curr_pos_x, curr_pos_y, curr_pos_z = self.get_position_ned()
+
+                # new_pos - curr_pos = 0 if positions match
+                distance_x = abs(curr_pos_x - dx)
+                distance_y = abs(curr_pos_y - dy)
+
+                if distance_x <= 0.2 and distance_y <= 0.2:
+                    print(f"point {i + 1} reached")
+                    break
 
 
     # Function to check battery voltage and RTL if below threshold
