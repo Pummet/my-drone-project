@@ -283,6 +283,7 @@ class Drone():
 
     # Jittery, velocity command would probably be better here
     def move_circle(self, radius = 10):
+        start_x, start_y, start_z = self.get_position_ned()
         degrees = 0
 
         if not self.is_armed():
@@ -294,13 +295,13 @@ class Drone():
             # Plotting points around a circle
             while degrees <= 360:
                 angle_radian = math.radians(degrees)
-                x = radius * math.cos(angle_radian)
-                y = radius * math.sin(angle_radian)
-                z = 0
+                x = start_x + radius * math.cos(angle_radian)
+                y = start_y + radius * math.sin(angle_radian)
+                z = start_z + 0
                 coords.append((x, y, z))
                 degrees += 10
 
-            self.send_and_monitor_position_ned(coords, 10)
+            self.send_and_monitor_position_ned(coords)
 
 
     def send_and_monitor_position_ned(self, coords, timeout = None):
@@ -328,15 +329,27 @@ class Drone():
                 distance_z = abs(new_pos_z - start_pos_z)
 
                 if distance_x >= abs(dx) * 0.95 and distance_y >= abs(dy) * 0.95:
+                    print(f"point {i + 1} reached")
                     break
 
 
     # Function to move the drone in a square.
-    # Relative to home position
-    def move_square(self, size = 15):
-        coords = ((size, 0, 0),(0, size, 0),(-size, 0, 0),(0, -size, 0), (size, 0, 0))
+    # Relative to current position
+    def move_square(self, size = 10):
+        current_x, current_y, current_z = self.get_position_ned()
 
-        self.send_and_monitor_position_ned(coords, 20)
+        moves = [(size, 0, 0),(0, size, 0),(-size, 0, 0),(0, -size, 0)]
+
+        full_coords = []
+
+        # List unpacking
+        for dx, dy, dz in moves:
+            current_x += dx
+            current_y += dy
+            current_z += dz
+            full_coords.append((current_x, current_y, current_z))
+
+        self.send_and_monitor_position_ned(full_coords, 20)
 
 
     # Function to check battery voltage and RTL if below threshold

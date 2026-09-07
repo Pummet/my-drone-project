@@ -1,5 +1,5 @@
 '''
-MOVE THE DRONE IN A SQUARE PATTERN
+MOVE THE DRONE IN A CIRCLE PATTERN
 '''
 
 import sys, os, time
@@ -14,7 +14,7 @@ drone_1 = main.create_drone(settings.connection_string, settings.baud_rate)
 
 
 drone_1.guided_arm_takeoff()
-drone_1.move_square(10)
+drone_1.move_circle(10)
 time.sleep(3)
 drone_1.mode_rtl()
 drone_1.drone_disarm()

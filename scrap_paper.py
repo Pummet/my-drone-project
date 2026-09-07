@@ -1,32 +1,28 @@
 '''
 DUMPING GROUND FOR SMALL TESTS!
 '''
-
 import math
-import matplotlib
-matplotlib.use('Agg') 
-import matplotlib.pyplot as plt
 
-radius = 10
-degrees_per_turn = 0
+def move_circle(radius = 10):
+    current_x, current_y, current_z = 70,90,0,
+    degrees = 0
 
-coords = []
-while degrees_per_turn < 360:
-    angle_radian = math.radians(degrees_per_turn)
-    x = radius * math.cos(angle_radian)
-    y = radius * math.sin(angle_radian)
-    coords.append((x, y))
-    degrees_per_turn += 10
+    #if not self.is_armed():
+    #    print("Drone is not armed. Cannot move in a circle.")
+    #    return
 
+    #else:
+    coords = []
+    # Plotting points around a circle
+    while degrees <= 360:
+        angle_radian = math.radians(degrees)
+        current_x += radius * math.cos(angle_radian)
+        current_y += radius * math.sin(angle_radian)
+        current_z += 0
+        coords.append((current_x, current_y, current_z))
+        degrees += 10
 
-
-
-xs = [c[0] for c in coords]
-ys = [c[1] for c in coords]
-
-plt.figure(figsize=(6, 6))
-plt.plot(xs, ys, 'o-')
-plt.gca().set_aspect('equal')
-plt.grid(True)
-plt.title("Points around a circle")
-plt.show()
+    print(coords)
+            
+            
+move_circle()
