@@ -281,7 +281,7 @@ class Drone():
                 return bool(heartbeat_msg.base_mode & 128)
         
 
-    # Jittery, velocity command would probably be better here?
+    # Jittery, drones starts and stops at every point....
     def move_circle(self, radius = 10):
         start_x, start_y, start_z = self.get_position_ned()
         degrees = 0
@@ -304,34 +304,31 @@ class Drone():
             self.send_and_monitor_position_ned(coords)
 
 
-    def move_circle_velocity(self, vel_z = 0, radius = 20, duration = 100, meters_sec = 5):
+    # Function that constantly sends velocity commands resulting in a circle
+    def move_circle_velocity(self, radius = 20, duration = 100, meters_sec = 5):
         start_time = time.time()
 
-        angle = 1
+        # math.sin and cos expects radian input
+        angle_radian = 0.0
+        angular_velocity = meters_sec / radius
 
         while time.time() - start_time <= duration:
-            # math.sin and cos expects radians input
-            angle_radian = math.radians(angle)
+
             # x = r * cos(radian) and y = r * sin(radian) gives me a point on the circle from that angle
-            # Swapping cos/sin rotates that by 90 degrees and gives me a direction
+            # Swapping cos/sin rotates that by 90 degrees and gives me a direction vector
             # a line just touching the circle perpendicular to the line from the centre
-            x = radius * math.sin(angle_radian)
-            y = radius * math.cos(angle_radian)
+            # sin and cos provide the direction, meters_sec is the speed
+            vel_x = meters_sec * math.sin(angle_radian)
+            vel_y = -meters_sec * math.cos(angle_radian)
+            vel_z = 0.0 # Maintain altitude
             # Inverting x or y here dictates CW or CCW motion around the circle
-            y = -y
-
-            magnitude = math.sqrt(x ** 2 + y ** 2)
-            unit_vector = [x / magnitude, y / magnitude]
-
-            vel_x = unit_vector[0] * meters_sec
-            vel_y = unit_vector[1] * meters_sec
 
             self.vehicle.mav.set_position_target_local_ned_send(
                 0,
                 self.vehicle.target_system,
                 self.vehicle.target_component,
                 mavutil.mavlink.MAV_FRAME_LOCAL_NED,
-                0b0000011111000111,
+                0b0000011111000111, # Bitmask, only velocity is read
                 0, 0, 0, # XYZ Position
                 vel_x,
                 vel_y,
@@ -342,10 +339,11 @@ class Drone():
 
             time.sleep(0.1)
 
-            angle += 5
+            angle_radian += angular_velocity * 0.1
 
-            if angle > 360:
-                angle = 1
+            # Wrap around radian back to 0.0
+            if angle_radian > 2 * math.pi:
+                angle_radian = 0.0
 
 
     # Function to move the drone in a square.
