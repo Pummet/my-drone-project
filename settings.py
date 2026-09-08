@@ -1,16 +1,16 @@
-############# BASH COMMANDS #############
+################ BASH COMMANDS ################
 # Gazebo   gz sim -v4 -r iris_runway.sdf
 # SITL     sim_vehicle.py -v ArduCopter -f gazebo-iris --model JSON --console -L Brockenhurst
 # QGC      ~/Applications/QGroundControl.AppImage
 
 
-########## Pi to FC settings ##########
+############## Pi to FC settings ##############
 #   TELEM3 UART:      '/dev/ttyAMA0'
 #   On Radio:         'COM8'
 #   On SITL           'tcp:127.0.0.1:5763'
 
 
-########## Computer to Pi #############
+############## Computer to Pi #################
 #   Toggle field:      sudo wifi-toggle.sh ap
 #   Toggle home:       sudo wifi-toggle.sh home
 

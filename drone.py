@@ -107,6 +107,7 @@ class Drone():
 
 
     def drone_takeoff(self, target_altitude):
+
         self.vehicle.mav.command_long_send( # pymavlink function for sending action commands
             self.vehicle.target_system, # which drone to send it to, important for swarms
             self.vehicle.target_component, # which component on the drone, usually autopilot
@@ -239,7 +240,9 @@ class Drone():
             int(lat * 1e7),
             int(lon * 1e7),
             alt,
-            0, 0, 0, 0, 0, 0, 0, 0
+            0,0,0, # XYZ velocity
+            0,0,0, # XYZ Accel force
+            0,0    # Yaw, Yaw Rate
         )
 
         print(f"Moving to - Lat: {lat}, Lon: {lon}, Alt: {alt}m")
@@ -257,7 +260,9 @@ class Drone():
             north, # X
             east,  # Y
             down,  # Z (Negative is up!)
-            0,0,0,0,0,0,0,0,0
+            0,0,0, # XYZ velocity
+            0,0,0, # XYZ Accel force
+            0,0    # Yaw, Yaw Rate
         )
 
 
@@ -349,32 +354,32 @@ class Drone():
     # Function to move the drone in a square.
     # Relative to current position
     def move_square(self, size = 10):
-        current_x, current_y, current_z = self.get_position_ned()
+        start_x, start_y, start_z = self.get_position_ned()
 
         moves = [(size, 0, 0),(0, size, 0),(-size, 0, 0),(0, -size, 0)]
 
         full_coords = []
 
         # List unpacking
-        for dx, dy, dz in moves:
-            current_x += dx
-            current_y += dy
-            current_z += dz
-            full_coords.append((current_x, current_y, current_z))
+        for tar_x, tar_y, tar_z in moves:
+            start_x += tar_x
+            start_y += tar_y
+            start_z += tar_z
+            full_coords.append((start_x, start_y, start_z))
 
-        self.send_and_monitor_position_ned(full_coords, 20)
+        self.send_and_monitor_position_ned(full_coords, yaw = 90)
 
     
-    def send_and_monitor_position_ned(self, coords, timeout = None):
-        for i, (dx, dy, dz) in enumerate(coords):
+    def send_and_monitor_position_ned(self, coords, timeout = None, yaw = None):
+        initial_yaw = yaw
 
-            _, __, start_pos_z = self.get_position_ned()
+        for i, (tar_x, tar_y, tar_z) in enumerate(coords):
 
-            if start_pos_z is None:
-                print("No Starting Position Recieved. Aborting...")
-                return
+            self.send_coords_ned(tar_x, tar_y, tar_z)
 
-            self.send_coords_ned(dx, dy, start_pos_z)
+            if initial_yaw is not None:
+                self.set_yaw(initial_yaw)
+                initial_yaw += yaw
 
             start_time = time.time()
 
@@ -383,15 +388,29 @@ class Drone():
                     if time.time() - start_time > timeout:
                         break
 
-                curr_pos_x, curr_pos_y, curr_pos_z = self.get_position_ned()
+                curr_x, curr_y, curr_z = self.get_position_ned()
 
-                # new_pos - curr_pos = 0 if positions match
-                distance_x = abs(curr_pos_x - dx)
-                distance_y = abs(curr_pos_y - dy)
+                # curr_pos - target = 0 if positions match
 
-                if distance_x <= 0.2 and distance_y <= 0.2:
+                if abs(curr_x - tar_x) <= 0.2 and abs(curr_y - tar_y) <= 0.2 and abs(curr_z - tar_z) <= 0.2:
                     print(f"point {i + 1} reached")
                     break
+
+                time.sleep(0.1) # Relax cpu spam
+
+
+    def set_yaw(self, yaw):
+        self.vehicle.mav.command_long_send(
+            self.vehicle.target_system,
+            self.vehicle.target_component,
+            mavutil.mavlink.MAV_CMD_CONDITION_YAW,
+            0,       # No confirmation needed
+            yaw % 360,     # Desired angle
+            20,      # Angle turn per second
+            0,       # Direction: -1 CCW, 0 shortest, 1 CW 
+            0,       # Relative offset (0 or 1) 
+            0, 0, 0  # Not used
+        )
 
 
     # Function to check battery voltage and RTL if below threshold
