@@ -14,7 +14,15 @@ drone_1 = main.create_drone(settings.connection_string, settings.baud_rate)
 
 
 drone_1.guided_arm_takeoff()
-drone_1.move_circle_velocity(duration = 60)
+
+start_time = time.time()
+duration = 300
+angle_radian = 0.0
+
+while time.time() - start_time <= duration:
+    angle_radian = drone_1.move_circle_north_velocity(20, angle_radian, 5)
+    time.sleep(0.1)
+
 drone_1.mode_rtl()
 drone_1.drone_disarm()
 drone_1.close()

@@ -156,6 +156,7 @@ class Drone():
 
     # Function to upload waypoints list to the drone
     def upload_mission(self, waypoints):
+        # Drone needs to know how many waypoints
         self.vehicle.mav.mission_count_send(
             self.vehicle.target_system, # which drone
             self.vehicle.target_component, # which component, usually automatic
@@ -266,13 +267,44 @@ class Drone():
         )
 
 
+    # Function to send yaw controls
+    def send_yaw(self, yaw):
+        self.vehicle.mav.command_long_send(
+            self.vehicle.target_system,
+            self.vehicle.target_component,
+            mavutil.mavlink.MAV_CMD_CONDITION_YAW,
+            0,         # No confirmation needed
+            yaw % 360, # Desired angle
+            20,        # Angle turn per second
+            0,         # Direction: -1 CCW, 0 shortest, 1 CW 
+            0,         # Relative offset (0 or 1) 
+            0, 0, 0    # Not used
+        )
+
+
+    # Function to send velocity commands
+    def send_velocity(self, vel_x, vel_y, vel_z):
+        self.vehicle.mav.set_position_target_local_ned_send(
+            0,
+            self.vehicle.target_system,
+            self.vehicle.target_component,
+            mavutil.mavlink.MAV_FRAME_LOCAL_NED,
+            0b0000011111000111, # Bitmask, only velocity is read
+            0, 0, 0, # XYZ Position
+            vel_x,
+            vel_y,
+            vel_z,
+            0, 0, 0, # XYZ Acceleration
+            0, 0 # Yaw and Yaw Rate
+        )
+
+
     def distance_to_home(self):
         pass
 
 
     # Returns True if armed, False if not, and None if no message
     def is_armed(self):
-
         while True:
             heartbeat_msg = self.vehicle.recv_match(type = "HEARTBEAT", blocking = True, timeout = 2)
 
@@ -310,51 +342,80 @@ class Drone():
 
 
     # Function that constantly sends velocity commands resulting in a circle
-    def move_circle_velocity(self, radius = 20, duration = 100, meters_sec = 5):
-        start_time = time.time()
+    def move_circle_north(self, radius, angle_radian, meters_sec):
 
-        # math.sin and cos expects radian input
-        angle_radian = 0.0
+        vel_x, vel_y, vel_z = self.calculate_velocity_circle(meters_sec, angle_radian)
+        self.send_velocity(vel_x, vel_y, vel_z)
+
         angular_velocity = meters_sec / radius
+        angle_radian += angular_velocity * 0.1
+
+        # Wrap around radian back to 0.0
+        if angle_radian > 2 * math.pi:
+            angle_radian = 0.0
+
+        return angle_radian
+
+
+    # Function for south facing circle
+    def move_circle_south(self, radius, angle_radian, meters_sec):
+
+        vel_x, vel_y, vel_z = self.calculate_velocity_circle(meters_sec, angle_radian)
+        self.send_velocity(vel_x, vel_y, vel_z)
+
+        angular_velocity = meters_sec / radius
+        angle_radian -= angular_velocity * 0.1
+
+        # Wrap around radian back to 6.28
+        if angle_radian < 0:
+            angle_radian = 2 * math.pi
+
+        return angle_radian
+
+
+    def calculate_velocity_circle(self, meters_sec, angle_radian):
+        # x = r * cos(radian) and y = r * sin(radian) gives me a point on the circle from that angle
+        # Swapping cos/sin rotates that by 90 degrees and gives me a direction vector
+        # a line just touching the circle perpendicular to the line from the centre
+        # sin and cos provide the direction, meters_sec is the speed
+        # Inverting x or y here dictates CW or CCW motion around the circle
+
+        vel_x = meters_sec * math.sin(angle_radian)
+        vel_y = -meters_sec * math.cos(angle_radian)
+        vel_z = 0.0 # Maintain altitude
+
+        return vel_x, vel_y, vel_z
+
+
+    # Function for moving in a figure eight. (2 circles, cheat!)
+    def move_figure_eight(self,meters_sec = 5, radius = 15, duration = 60):
+        start_time = time.time()
+        angle_radian = 0.0
+        north = True
 
         while time.time() - start_time <= duration:
+            prev_angle = angle_radian
 
-            # x = r * cos(radian) and y = r * sin(radian) gives me a point on the circle from that angle
-            # Swapping cos/sin rotates that by 90 degrees and gives me a direction vector
-            # a line just touching the circle perpendicular to the line from the centre
-            # sin and cos provide the direction, meters_sec is the speed
-            vel_x = meters_sec * math.sin(angle_radian)
-            vel_y = -meters_sec * math.cos(angle_radian)
-            vel_z = 0.0 # Maintain altitude
-            # Inverting x or y here dictates CW or CCW motion around the circle
+            if north:
+                angle_radian = self.move_circle_north(radius, angle_radian, meters_sec)
 
-            self.vehicle.mav.set_position_target_local_ned_send(
-                0,
-                self.vehicle.target_system,
-                self.vehicle.target_component,
-                mavutil.mavlink.MAV_FRAME_LOCAL_NED,
-                0b0000011111000111, # Bitmask, only velocity is read
-                0, 0, 0, # XYZ Position
-                vel_x,
-                vel_y,
-                vel_z,
-                0, 0, 0, # XYZ Acceleration
-                0, 0 # Yaw and Yaw Rate
-            )
+                if angle_radian < prev_angle:
+                        angle_radian = 2 * math.pi # South circle decrements radian
+                        north = False
+            else:
+                angle_radian = self.move_circle_south(radius, angle_radian, meters_sec)
+
+                if angle_radian > prev_angle:
+                        angle_radian = 0.0 # north circle increases radian
+                        north = True
 
             time.sleep(0.1)
-
-            angle_radian += angular_velocity * 0.1
-
-            # Wrap around radian back to 0.0
-            if angle_radian > 2 * math.pi:
-                angle_radian = 0.0
 
 
     # Function to move the drone in a square.
     # Relative to current position
     def move_square(self, size = 10):
-        start_x, start_y, start_z = self.get_position_ned()
+        start_pos = list(self.get_position_ned())
 
         moves = [(size, 0, 0),(0, size, 0),(-size, 0, 0),(0, -size, 0)]
 
@@ -362,24 +423,25 @@ class Drone():
 
         # List unpacking
         for tar_x, tar_y, tar_z in moves:
-            start_x += tar_x
-            start_y += tar_y
-            start_z += tar_z
-            full_coords.append((start_x, start_y, start_z))
+            start_pos[0] += tar_x
+            start_pos[1] += tar_y
+            start_pos[2] += tar_z
+            full_coords.append((start_pos[0], start_pos[1], start_pos[2]))
 
         self.send_and_monitor_position_ned(full_coords, yaw = 90)
 
     
     def send_and_monitor_position_ned(self, coords, timeout = None, yaw = None):
-        initial_yaw = yaw
+
+        yaw_change = yaw
 
         for i, (tar_x, tar_y, tar_z) in enumerate(coords):
 
             self.send_coords_ned(tar_x, tar_y, tar_z)
 
-            if initial_yaw is not None:
-                self.set_yaw(initial_yaw)
-                initial_yaw += yaw
+            if yaw_change is not None:
+                self.send_yaw(yaw_change)
+                yaw_change += yaw
 
             start_time = time.time()
 
@@ -388,29 +450,14 @@ class Drone():
                     if time.time() - start_time > timeout:
                         break
 
-                curr_x, curr_y, curr_z = self.get_position_ned()
+                curr_pos = self.get_position_ned()
 
                 # curr_pos - target = 0 if positions match
-
-                if abs(curr_x - tar_x) <= 0.2 and abs(curr_y - tar_y) <= 0.2 and abs(curr_z - tar_z) <= 0.2:
+                if abs(curr_pos[0] - tar_x) <= 0.2 and abs(curr_pos[1] - tar_y) <= 0.2 and abs(curr_pos[2] - tar_z) <= 0.2:
                     print(f"point {i + 1} reached")
                     break
 
                 time.sleep(0.1) # Relax cpu spam
-
-
-    def set_yaw(self, yaw):
-        self.vehicle.mav.command_long_send(
-            self.vehicle.target_system,
-            self.vehicle.target_component,
-            mavutil.mavlink.MAV_CMD_CONDITION_YAW,
-            0,       # No confirmation needed
-            yaw % 360,     # Desired angle
-            20,      # Angle turn per second
-            0,       # Direction: -1 CCW, 0 shortest, 1 CW 
-            0,       # Relative offset (0 or 1) 
-            0, 0, 0  # Not used
-        )
 
 
     # Function to check battery voltage and RTL if below threshold

@@ -1,7 +1,8 @@
 '''
-DUMPING GROUND FOR SMALL TESTS!
+MOVE THE DRONE IN A CIRCLE PATTERN
 '''
-import sys, os, time, math
+
+import sys, os, time
 
 # This is to help import from working directory
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -12,11 +13,10 @@ import main, settings
 drone_1 = main.create_drone(settings.connection_string, settings.baud_rate)
 
 
+drone_1.guided_arm_takeoff()
 
-start = (1,0,10)
-target = (1, 0, 10)
+drone_1.move_figure_eight(duration = 300)
 
-start_pos = drone_1.get_position_ned()
-print(type(start_pos))
-
-print(start == target)
+drone_1.mode_rtl()
+drone_1.drone_disarm()
+drone_1.close()
