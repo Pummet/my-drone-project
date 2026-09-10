@@ -20,3 +20,5 @@ start_pos = drone_1.get_position_ned()
 print(type(start_pos))
 
 print(start == target)
+
+print(400 % 360)

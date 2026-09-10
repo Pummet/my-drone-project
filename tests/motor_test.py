@@ -29,7 +29,7 @@ def main():
 
     vehicle = drone.Drone(settings.connection_string, settings.baud_rate)
 
-    for motor in range(1, settings.num_motors + 1):
+    for motor in range(1, vehicle.motors + 1):
         test_motor(vehicle, motor, throttle_percent, test_duration_sec)
 
     vehicle.close()

@@ -16,9 +16,11 @@ import time, math
 
 
 class Drone():
-    def __init__(self, connection_string, baud = None):
+    def __init__(self, connection_string, baud = None, motors = 4):
         self.connection = connection_string
         self.baud = baud
+        self.motors = motors
+
         self.vehicle = mavutil.mavlink_connection(self.connection, baud = self.baud) # Sending connection string to MavLink
         self.vehicle.wait_heartbeat() # waiting for connection confirmation before continuing
         print(f"Heartbeat from system {self.vehicle.target_system}, component {self.vehicle.target_component}")
@@ -343,9 +345,11 @@ class Drone():
 
     # Function that constantly sends velocity commands resulting in a circle
     def move_circle_north(self, radius, angle_radian, meters_sec):
+        target_yaw = (angle_radian + math.pi) * (180 / math.pi)
 
         vel_x, vel_y, vel_z = self.calculate_velocity_circle(meters_sec, angle_radian)
         self.send_velocity(vel_x, vel_y, vel_z)
+        self.send_yaw(target_yaw)
 
         angular_velocity = meters_sec / radius
         angle_radian += angular_velocity * 0.1
@@ -359,9 +363,11 @@ class Drone():
 
     # Function for south facing circle
     def move_circle_south(self, radius, angle_radian, meters_sec):
+        target_yaw = (angle_radian - math.pi) * (180 / math.pi)
 
         vel_x, vel_y, vel_z = self.calculate_velocity_circle(meters_sec, angle_radian)
         self.send_velocity(vel_x, vel_y, vel_z)
+        self.send_yaw(target_yaw)
 
         angular_velocity = meters_sec / radius
         angle_radian -= angular_velocity * 0.1
@@ -373,16 +379,20 @@ class Drone():
         return angle_radian
 
 
-    def calculate_velocity_circle(self, meters_sec, angle_radian):
+    def calculate_velocity_circle(self, meters_sec, angle_radian, clockwise = True, vel_z = 0.0):
         # x = r * cos(radian) and y = r * sin(radian) gives me a point on the circle from that angle
-        # Swapping cos/sin rotates that by 90 degrees and gives me a direction vector
+        # Swapping cos/sin rotates that by 90 degrees and gives me a direction vector,
         # a line just touching the circle perpendicular to the line from the centre
         # sin and cos provide the direction, meters_sec is the speed
         # Inverting x or y here dictates CW or CCW motion around the circle
 
-        vel_x = meters_sec * math.sin(angle_radian)
-        vel_y = -meters_sec * math.cos(angle_radian)
-        vel_z = 0.0 # Maintain altitude
+        if clockwise:
+            vel_x = meters_sec * math.sin(angle_radian)
+            vel_y = -meters_sec * math.cos(angle_radian)
+
+        else:
+            vel_x = -meters_sec * math.sin(angle_radian)
+            vel_y = meters_sec * math.cos(angle_radian)
 
         return vel_x, vel_y, vel_z
 
@@ -393,6 +403,9 @@ class Drone():
         angle_radian = 0.0
         north = True
 
+        # Same angle_radian is being passed back and forth, whilst spamming vector commands at 0.1 secs
+        # tracking previous angle to catch the resets in move_circle functions
+        # when this happens, the drone has completed a full circle and switches to the opposite circle
         while time.time() - start_time <= duration:
             prev_angle = angle_radian
 
