@@ -437,7 +437,7 @@ class Drone():
 
 
     # Function for moving in a figure eight. (2 circles, cheat!)
-    def move_figure_eight(self, radius = 3, duration = 60):
+    def move_figure_eight(self, radius = 15, duration = 60):
         meters_sec = self.calculate_meters_sec(radius)
 
         start_time = time.time()

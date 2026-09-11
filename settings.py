@@ -18,7 +18,7 @@
 #   In the field AP:   ssh pummet@192.168.4.1
 
 
-connection_string = 'tcp:127.0.0.1:5763'
+connection_string = '/dev/ttyAMA0'
 baud_rate = 57600
 num_motors = 4
 
