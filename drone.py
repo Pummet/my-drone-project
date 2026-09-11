@@ -372,11 +372,38 @@ class Drone():
         angular_velocity = meters_sec / radius
         angle_radian -= angular_velocity * 0.1
 
-        # Wrap around radian back to 6.28
-        if angle_radian < 0:
+        # Wrap around radian back to 0.0
+        if angle_radian < 0.0:
             angle_radian = 2 * math.pi
 
         return angle_radian
+
+
+    def move_circle(self, radius, angle_radian, meters_sec, mirror = False, clockwise = True):
+        if not mirror:
+            target_yaw = angle_radian * (180 / math.pi)
+        else:
+            target_yaw = (angle_radian - math.pi) * (180 / math.pi)
+
+        vel_x, vel_y, vel_z = self.calculate_velocity_circle(meters_sec, angle_radian, mirror)
+        self.send_velocity(vel_x, vel_y, vel_z)
+        self.send_yaw(target_yaw)
+
+        angular_velocity = meters_sec / radius
+
+        # CW or CCW motion dictated here
+        if clockwise:
+            angle_radian += angular_velocity * 0.1
+        else:
+            angle_radian -= angular_velocity * 0.1
+
+        # Wrap around radian back to 0.0
+        if angle_radian > 2 * math.pi:
+            angle_radian = 0.0
+
+        return angle_radian
+
+
 
 
     def calculate_velocity_circle(self, meters_sec, angle_radian, mirror = False, vel_z = 0.0):
@@ -407,6 +434,7 @@ class Drone():
             meters_sec = 10
 
         return meters_sec
+
 
     # Function for moving in a figure eight. (2 circles, cheat!)
     def move_figure_eight(self, radius = 3, duration = 60):
