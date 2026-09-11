@@ -270,15 +270,15 @@ class Drone():
 
 
     # Function to send yaw controls
-    def send_yaw(self, yaw):
+    def send_yaw(self, yaw, dir = 0):
         self.vehicle.mav.command_long_send(
             self.vehicle.target_system,
             self.vehicle.target_component,
             mavutil.mavlink.MAV_CMD_CONDITION_YAW,
             0,         # No confirmation needed
-            yaw % 360, # Desired angle
-            20,        # Angle turn per second
-            0,         # Direction: -1 CCW, 0 shortest, 1 CW 
+            yaw % 360, # Desired angle (wrap-around)
+            200,       # Angle turn per second
+            dir,       # Direction: -1 CCW, 0 shortest, 1 CW 
             0,         # Relative offset (0 or 1) 
             0, 0, 0    # Not used
         )
@@ -345,7 +345,7 @@ class Drone():
 
     # Function that constantly sends velocity commands resulting in a circle
     def move_circle_north(self, radius, angle_radian, meters_sec):
-        target_yaw = (angle_radian + math.pi) * (180 / math.pi)
+        target_yaw = angle_radian * (180 / math.pi)
 
         vel_x, vel_y, vel_z = self.calculate_velocity_circle(meters_sec, angle_radian)
         self.send_velocity(vel_x, vel_y, vel_z)
@@ -379,14 +379,14 @@ class Drone():
         return angle_radian
 
 
-    def calculate_velocity_circle(self, meters_sec, angle_radian, clockwise = True, vel_z = 0.0):
+    def calculate_velocity_circle(self, meters_sec, angle_radian, mirror = False, vel_z = 0.0):
         # x = r * cos(radian) and y = r * sin(radian) gives me a point on the circle from that angle
         # Swapping cos/sin rotates that by 90 degrees and gives me a direction vector,
         # a line just touching the circle perpendicular to the line from the centre
         # sin and cos provide the direction, meters_sec is the speed
-        # Inverting x or y here dictates CW or CCW motion around the circle
+        # Inverting x or y here mirrors the circle
 
-        if clockwise:
+        if not mirror:
             vel_x = meters_sec * math.sin(angle_radian)
             vel_y = -meters_sec * math.cos(angle_radian)
 
@@ -397,8 +397,21 @@ class Drone():
         return vel_x, vel_y, vel_z
 
 
+    def calculate_meters_sec(self, radius):
+        # 5m/s over 15m radius circle worked well in sims, good reference point
+        # Gives me a good speed per 1m, then multiply by radius
+        ref_speed, ref_radius = 5, 15
+        meters_sec = (ref_speed / ref_radius) * radius
+
+        if meters_sec > 10: # Capping speed
+            meters_sec = 10
+
+        return meters_sec
+
     # Function for moving in a figure eight. (2 circles, cheat!)
-    def move_figure_eight(self,meters_sec = 5, radius = 15, duration = 60):
+    def move_figure_eight(self, radius = 3, duration = 60):
+        meters_sec = self.calculate_meters_sec(radius)
+
         start_time = time.time()
         angle_radian = 0.0
         north = True
@@ -427,7 +440,7 @@ class Drone():
 
     # Function to move the drone in a square.
     # Relative to current position
-    def move_square(self, size = 10):
+    def move_square(self, size = 5):
         start_pos = list(self.get_position_ned())
 
         moves = [(size, 0, 0),(0, size, 0),(-size, 0, 0),(0, -size, 0)]
@@ -441,36 +454,37 @@ class Drone():
             start_pos[2] += tar_z
             full_coords.append((start_pos[0], start_pos[1], start_pos[2]))
 
-        self.send_and_monitor_position_ned(full_coords, yaw = 90)
+        self.send_and_monitor_position_ned(full_coords, yaw = 90, reps = 5)
 
     
-    def send_and_monitor_position_ned(self, coords, timeout = None, yaw = None):
+    def send_and_monitor_position_ned(self, coords, timeout = None, yaw = None, reps = 1):
 
         yaw_change = yaw
 
-        for i, (tar_x, tar_y, tar_z) in enumerate(coords):
+        for i in range(reps):
+            for i, (tar_x, tar_y, tar_z) in enumerate(coords):
 
-            self.send_coords_ned(tar_x, tar_y, tar_z)
+                self.send_coords_ned(tar_x, tar_y, tar_z)
 
-            if yaw_change is not None:
-                self.send_yaw(yaw_change)
-                yaw_change += yaw
+                if yaw_change is not None:
+                    self.send_yaw(yaw_change)
+                    yaw_change += yaw
 
-            start_time = time.time()
+                start_time = time.time()
 
-            while True:
-                if timeout is not None:
-                    if time.time() - start_time > timeout:
+                while True:
+                    if timeout is not None:
+                        if time.time() - start_time > timeout:
+                            break
+
+                    curr_pos = self.get_position_ned()
+
+                    # curr_pos - target = 0 if positions match
+                    if abs(curr_pos[0] - tar_x) <= 0.2 and abs(curr_pos[1] - tar_y) <= 0.2 and abs(curr_pos[2] - tar_z) <= 0.2:
+                        print(f"point {i + 1} reached")
                         break
 
-                curr_pos = self.get_position_ned()
-
-                # curr_pos - target = 0 if positions match
-                if abs(curr_pos[0] - tar_x) <= 0.2 and abs(curr_pos[1] - tar_y) <= 0.2 and abs(curr_pos[2] - tar_z) <= 0.2:
-                    print(f"point {i + 1} reached")
-                    break
-
-                time.sleep(0.1) # Relax cpu spam
+                    time.sleep(0.1) # Relax cpu spam
 
 
     # Function to check battery voltage and RTL if below threshold

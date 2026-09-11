@@ -18,9 +18,11 @@ drone_1.guided_arm_takeoff()
 start_time = time.time()
 duration = 300
 angle_radian = 0.0
+radius = 3
+meters_sec = drone_1.calculate_meters_sec(radius)
 
 while time.time() - start_time <= duration:
-    angle_radian = drone_1.move_circle_north_velocity(20, angle_radian, 5)
+    angle_radian = drone_1.move_circle_north(3, angle_radian, meters_sec)
     time.sleep(0.1)
 
 drone_1.mode_rtl()

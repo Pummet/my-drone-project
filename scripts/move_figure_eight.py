@@ -15,7 +15,7 @@ drone_1 = main.create_drone(settings.connection_string, settings.baud_rate)
 
 drone_1.guided_arm_takeoff()
 
-drone_1.move_figure_eight(duration = 300)
+drone_1.move_figure_eight()
 
 drone_1.mode_rtl()
 drone_1.drone_disarm()
