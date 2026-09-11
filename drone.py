@@ -321,7 +321,7 @@ class Drone():
         
 
     # Jittery, drones starts and stops at every point....
-    def move_circle(self, radius = 10):
+    def move_circle_terrible(self, radius = 10):
         start_x, start_y, start_z = self.get_position_ned()
         degrees = 0
 
@@ -343,83 +343,49 @@ class Drone():
             self.send_and_monitor_position_ned(coords)
 
 
-    # Function that constantly sends velocity commands resulting in a circle
-    def move_circle_north(self, radius, angle_radian, meters_sec):
-        target_yaw = angle_radian * (180 / math.pi)
-
-        vel_x, vel_y, vel_z = self.calculate_velocity_circle(meters_sec, angle_radian)
-        self.send_velocity(vel_x, vel_y, vel_z)
-        self.send_yaw(target_yaw)
-
-        angular_velocity = meters_sec / radius
-        angle_radian += angular_velocity * 0.1
-
-        # Wrap around radian back to 0.0
-        if angle_radian > 2 * math.pi:
-            angle_radian = 0.0
-
-        return angle_radian
-
-
-    # Function for south facing circle
-    def move_circle_south(self, radius, angle_radian, meters_sec):
-        target_yaw = (angle_radian - math.pi) * (180 / math.pi)
-
-        vel_x, vel_y, vel_z = self.calculate_velocity_circle(meters_sec, angle_radian)
-        self.send_velocity(vel_x, vel_y, vel_z)
-        self.send_yaw(target_yaw)
-
-        angular_velocity = meters_sec / radius
-        angle_radian -= angular_velocity * 0.1
-
-        # Wrap around radian back to 0.0
-        if angle_radian < 0.0:
-            angle_radian = 2 * math.pi
-
-        return angle_radian
-
-
     def move_circle(self, radius, angle_radian, meters_sec, mirror = False, clockwise = True):
+        # Drone faces the centre of the circle as it orbits
+        # mirror = False --- centre is north of start
+        # mirror = True ---- centre is south of start
+        # the circles position is dictated by the velocity calculation
         if not mirror:
             target_yaw = angle_radian * (180 / math.pi)
         else:
             target_yaw = (angle_radian - math.pi) * (180 / math.pi)
 
-        vel_x, vel_y, vel_z = self.calculate_velocity_circle(meters_sec, angle_radian, mirror)
+        vel_x, vel_y, vel_z = self.calculate_velocity_circle(meters_sec, angle_radian)
         self.send_velocity(vel_x, vel_y, vel_z)
         self.send_yaw(target_yaw)
 
         angular_velocity = meters_sec / radius
 
-        # CW or CCW motion dictated here
+        # movement direction is controlling which circle the drone is on
+        # and which way it travels
         if clockwise:
             angle_radian += angular_velocity * 0.1
         else:
             angle_radian -= angular_velocity * 0.1
 
-        # Wrap around radian back to 0.0
-        if angle_radian > 2 * math.pi:
+        # Wrap around radian back to 0.0 or 6.28
+        if not mirror and angle_radian > 2 * math.pi:
             angle_radian = 0.0
+            
+        elif mirror and angle_radian < 0.0:
+            angle_radian = 2 * math.pi
 
         return angle_radian
 
 
 
 
-    def calculate_velocity_circle(self, meters_sec, angle_radian, mirror = False, vel_z = 0.0):
+    def calculate_velocity_circle(self, meters_sec, angle_radian, vel_z = 0.0):
         # x = r * cos(radian) and y = r * sin(radian) gives me a point on the circle from that angle
         # Swapping cos/sin rotates that by 90 degrees and gives me a direction vector,
         # a line just touching the circle perpendicular to the line from the centre
         # sin and cos provide the direction, meters_sec is the speed
-        # Inverting x or y here mirrors the circle
 
-        if not mirror:
-            vel_x = meters_sec * math.sin(angle_radian)
-            vel_y = -meters_sec * math.cos(angle_radian)
-
-        else:
-            vel_x = -meters_sec * math.sin(angle_radian)
-            vel_y = meters_sec * math.cos(angle_radian)
+        vel_x = meters_sec * math.sin(angle_radian)
+        vel_y = -meters_sec * math.cos(angle_radian)
 
         return vel_x, vel_y, vel_z
 
@@ -437,31 +403,31 @@ class Drone():
 
 
     # Function for moving in a figure eight. (2 circles, cheat!)
-    def move_figure_eight(self, radius = 15, duration = 60):
+    def move_figure_eight(self, radius = 3, duration = 60):
         meters_sec = self.calculate_meters_sec(radius)
 
         start_time = time.time()
         angle_radian = 0.0
-        north = True
+        mirror = False
 
         # Same angle_radian is being passed back and forth, whilst spamming vector commands at 0.1 secs
-        # tracking previous angle to catch the resets in move_circle functions
-        # when this happens, the drone has completed a full circle and switches to the opposite circle
+        # Tracking previous angle to catch the resets in move_circle()
+        # when this happens, the drone has completed a full circle and switches to a mirrored circle
         while time.time() - start_time <= duration:
             prev_angle = angle_radian
 
-            if north:
-                angle_radian = self.move_circle_north(radius, angle_radian, meters_sec)
+            if not mirror:
+                angle_radian = self.move_circle(radius, angle_radian, meters_sec)
 
                 if angle_radian < prev_angle:
                         angle_radian = 2 * math.pi # South circle decrements radian
-                        north = False
+                        mirror = True
             else:
-                angle_radian = self.move_circle_south(radius, angle_radian, meters_sec)
+                angle_radian = self.move_circle(radius, angle_radian, meters_sec, mirror, clockwise = False)
 
                 if angle_radian > prev_angle:
-                        angle_radian = 0.0 # north circle increases radian
-                        north = True
+                        angle_radian = 0 # north circle increases radian
+                        mirror = False
 
             time.sleep(0.1)
 
@@ -535,7 +501,7 @@ class Drone():
         if batt_msg is None:
             return None
         
-        return sum(batt_msg.voltages[:4]) # My drone uses a 4 cell lipo (4S)
+        return sum(batt_msg.voltages[:self.motors]) # My drone uses a 4 cell lipo (4S)
 
 
     # Function to monitor the drone until it is disarmed
