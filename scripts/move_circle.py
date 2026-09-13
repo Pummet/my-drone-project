@@ -25,6 +25,6 @@ while time.time() - start_time <= duration:
     angle_radian = drone_1.move_circle(3, angle_radian, meters_sec)
     time.sleep(0.1)
 
-drone_1.mode_rtl()
+drone_1.change_flight_mode("rtl")
 drone_1.drone_disarm()
 drone_1.close()

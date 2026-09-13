@@ -18,9 +18,24 @@
 #   In the field AP:   ssh pummet@192.168.4.1
 
 
-connection_string = '/dev/ttyAMA0'
+
+#################### NOTES ####################
+# GIT PULL BEFORE STARTING
+
+# SAVE, then:
+# git add .
+# git commit -m "describe what changed"
+# git push
+
+# self.vehicle     -> pymavlink connection object, high level helper functions
+#                     eg. arducopter_arm(), set_mode_apm()
+# self.vehicle.mav -> pymavlink raw MAVLink message senders
+#                     eg. mission_count_send(), mission_item_int_send()
+# self.method_name -> my own methods
+
+
+connection_string = 'tcp:127.0.0.1:5763'
 baud_rate = 57600
-num_motors = 4
 
 # This will need to change, path is different on the Pi
-path = "/home/pummet/Documents/Projects/my-drone-project/waypoints/airfield.txt"
+path = "/home/pummet/Documents/Projects/my-drone-project/waypoints/daryl_coop.txt"

@@ -17,6 +17,6 @@ drone_1.guided_arm_takeoff()
 
 drone_1.move_figure_eight()
 
-drone_1.mode_rtl()
+drone_1.change_flight_mode("rtl")
 drone_1.drone_disarm()
 drone_1.close()

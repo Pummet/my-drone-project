@@ -9,9 +9,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import main, settings
 
 
+
 # drone_1 = main.create_drone(settings.connection_string, settings.baud_rate)
-
-
 
 start = (1,0,10)
 target = (1, 0, 10)

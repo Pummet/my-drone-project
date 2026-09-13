@@ -7,11 +7,12 @@ def create_drone(connection, baud = None):
     return Drone(connection, baud)
 
 
-
+# run waypoint mission
 def drone_arm_mission(drone, path):
     drone.guided_arm_takeoff(10)
     drone.upload_mission(drone.load_waypoint(path))
-    drone.mode_auto()
+    drone.change_flight_mode("auto")
+    drone.waypoint_tracker()
     drone.monitor_until_disarmed()
 
 
