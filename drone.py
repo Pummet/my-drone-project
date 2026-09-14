@@ -4,27 +4,11 @@ from drone_missions import Drone_Missions
 from drone_patterns import Drone_Patterns
 from drone_wrappers import Drone_Wrappers
 
-# GIT PULL BEFORE STARTING
-
-# SAVE, then:
-# git add .
-# git commit -m "describe what changed"
-# git push
-
-# self.vehicle     -> pymavlink connection object, high level helper functions
-#                     eg. arducopter_arm(), set_mode_apm()
-# self.vehicle.mav -> pymavlink raw MAVLink message senders
-#                     eg. mission_count_send(), mission_item_int_send()
-# self.method_name -> my own methods
-
-
 ''' 
-ORIGINAL FILE WAS GETTING LARGE
-USING A TRICK I FOUND HERE CALLED MIXINS
-SET UP CLASSES WITH GROUPED FUNCTIONS
-THEN DRONE INHERITS FROM ALL OF THEM
-MY CODE WILL WORK THE SAME AS BEFORE
-NO NEED TO REWRITE
+Originally I had all functions under class Drone(), but it was starting to get a bit unwieldy.
+Searched around and found this, which is called a mixin. Can set up many classes and group functions together,
+then create class Drone that inherits from all of them. I can use this class like drone_1 = Drone(etc etc), and it will
+inherit all functions! Very cool!
 '''
 
 
