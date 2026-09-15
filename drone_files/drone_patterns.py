@@ -61,8 +61,20 @@ class Drone_Patterns():
             self.send_and_monitor_position_ned(coords)
 
 
+    # Continuous function to spam circle_steps
+    def fly_circle(self):
+        start_time = time.time()
+        duration = 60
+        angle_radian = 0.0
+        radius = 3
+        meters_sec = self.calculate_meters_sec(radius)
+
+        while time.time() - start_time <= duration:
+            angle_radian = self.circle_steps(radius, angle_radian, meters_sec)
+
+
     # Smooth circular movement using vectors
-    def move_circle(self, radius, angle_radian, meters_sec, mirror = False, clockwise = True):
+    def circle_steps(self, radius, angle_radian, meters_sec, mirror = False, clockwise = True):
         # Drone faces the centre of the circle as it orbits
         # mirror = False --- centre is north of start
         # mirror = True ---- centre is south of start
@@ -134,13 +146,13 @@ class Drone_Patterns():
             prev_angle = angle_radian
 
             if not mirror:
-                angle_radian = self.move_circle(radius, angle_radian, meters_sec)
+                angle_radian = self.circle_steps(radius, angle_radian, meters_sec)
 
                 if angle_radian < prev_angle:
                         angle_radian = 2 * math.pi # South circle decrements radian
                         mirror = True
             else:
-                angle_radian = self.move_circle(radius, angle_radian, meters_sec, mirror, clockwise = False)
+                angle_radian = self.circle_steps(radius, angle_radian, meters_sec, mirror, clockwise = False)
 
                 if angle_radian > prev_angle:
                         angle_radian = 0 # north circle increases radian

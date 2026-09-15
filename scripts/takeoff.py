@@ -7,9 +7,9 @@ import sys, os, time
 # This is to help import from working directory
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import main, settings
+import main
 
-drone_1 = main.create_drone(settings.connection_string, settings.baud_rate)
+drone_1 = main.pi_or_sim()
 
 
 # Catches parameters from command line, ie. python3 move_square.py 10

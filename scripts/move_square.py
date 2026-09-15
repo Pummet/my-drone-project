@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import main, settings
 
 
-drone_1 = main.create_drone(settings.connection_string, settings.baud_rate)
+drone_1 = main.pi_or_sim()
 
 
 drone_1.guided_arm_takeoff()

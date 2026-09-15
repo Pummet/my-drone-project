@@ -6,7 +6,6 @@
 
 ############## Pi to FC settings ##############
 #   TELEM3 UART:      '/dev/ttyAMA0'
-#   On Radio:         'COM8'
 #   On SITL           'tcp:127.0.0.1:5763'
 
 
@@ -34,7 +33,7 @@
 # self.method_name -> my own methods
 
 
-connection_string = 'tcp:127.0.0.1:5763'
+connection_string = '/dev/ttyAMA0'
 baud_rate = 57600
 
 # This will need to change, path is different on the Pi

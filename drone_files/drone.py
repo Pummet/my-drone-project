@@ -1,8 +1,8 @@
-from drone_core import Drone_Core
-from drone_commands import Drone_Commands
-from drone_missions import Drone_Missions
-from drone_patterns import Drone_Patterns
-from drone_wrappers import Drone_Wrappers
+from drone_files.drone_core import Drone_Core
+from drone_files.drone_commands import Drone_Commands
+from drone_files.drone_missions import Drone_Missions
+from drone_files.drone_patterns import Drone_Patterns
+from drone_files.drone_wrappers import Drone_Wrappers
 
 ''' 
 Originally I had all functions under class Drone(), but it was starting to get a bit unwieldy.

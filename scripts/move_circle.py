@@ -7,10 +7,10 @@ import sys, os, time
 # This is to help import from working directory
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import main, settings
+import main
 
 
-drone_1 = main.create_drone(settings.connection_string, settings.baud_rate)
+drone_1 = main.pi_or_sim()
 
 
 drone_1.guided_arm_takeoff()
@@ -22,7 +22,7 @@ radius = 3
 meters_sec = drone_1.calculate_meters_sec(radius)
 
 while time.time() - start_time <= duration:
-    angle_radian = drone_1.move_circle(3, angle_radian, meters_sec)
+    angle_radian = drone_1.circle_steps(3, angle_radian, meters_sec)
     time.sleep(0.1)
 
 drone_1.change_flight_mode("rtl")

@@ -43,7 +43,6 @@ class Drone_Core():
                 print(f"Error flushing port: {e}")
 
         self.vehicle.close()
-        print("Connection closed, ready for next run.")
 
 
     # Returns True if armed, False if not, and None if no message

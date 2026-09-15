@@ -1,4 +1,5 @@
-from drone import Drone
+from drone_files.drone import Drone
+import vision.camera_functions
 
 import settings, sys
 
@@ -19,6 +20,31 @@ def pi_or_sim():
 
 
 if __name__ == "__main__":
-    drone_1 = pi_or_sim()
-    drone_1.drone_takeoff(2)
+    drone = pi_or_sim()
+    drone.drone_takeoff(2)
 
+    missions = {
+        1: drone.guided_arm_takeoff,
+        2: drone.move_square,
+        3: drone.fly_circle,
+        4: drone.move_figure_eight,
+        5: "",
+        6: "",
+        7: "",
+        8: "",
+        9: drone.land_disarm,
+        }
+
+    while True:
+        gesture = vision.camera_functions.finger_counter()
+
+        if gesture in missions:
+            missions[gesture]()
+        elif gesture == 10:
+            vision.camera_functions.release_camera()
+            drone.drone_disarm()
+            drone.close()
+            print("Drone disconnecting...")
+            break
+        else:
+            print("No mission mapped to that gesture.")

@@ -8,7 +8,7 @@ import sys, os, time
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from pymavlink import mavutil
-import settings, drone
+import main
 
 
 
@@ -16,7 +16,7 @@ throttle_percent = 10       # 0-100
 test_duration_sec = 2       # how long each motor spins
 
 
-def main():
+def motor_test():
     print("=" * 50)
     print("MOTOR TEST — CONFIRM PROPS ARE OFF")
     print("=" * 50)
@@ -27,16 +27,16 @@ def main():
         print("Aborted.")
         return
 
-    vehicle = drone.Drone(settings.connection_string, settings.baud_rate)
+    vehicle = main.pi_or_sim()
 
-    for motor in range(1, vehicle.motors + 1):
-        test_motor(vehicle, motor, throttle_percent, test_duration_sec)
+    for m in range(1, vehicle.motors + 1):
+        motor(vehicle, m, throttle_percent, test_duration_sec)
 
     vehicle.close()
 
 
 
-def test_motor(vehicle, motor_number, throttle_percent, duration_sec):
+def motor(vehicle, motor_number, throttle_percent, duration_sec):
     print(f"Testing motor {motor_number}, for {duration_sec} seconds at {throttle_percent}% power.")
 
     vehicle.mav.command_long_send(
