@@ -8,3 +8,4 @@ MAVProxy==1.8.74
 future==1.0.0
 matplotlib==3.11.1
 opencv-python==5.0.0.93
+mediapipe==0.10.14
