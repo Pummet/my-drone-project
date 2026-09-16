@@ -12,7 +12,7 @@ class Drone_Patterns():
 
         yaw_change = yaw
 
-        for i in range(reps):
+        for _ in range(reps):
             for i, (tar_x, tar_y, tar_z) in enumerate(coords):
 
                 self.send_coords_ned(tar_x, tar_y, tar_z)
@@ -44,7 +44,7 @@ class Drone_Patterns():
         start_x, start_y, start_z = self.get_position_ned()
         degrees = 0
 
-        if not self.is_armed():
+        if not self.armed():
             print("Drone is not armed. Cannot move in a circle.")
             return
 
@@ -106,6 +106,19 @@ class Drone_Patterns():
         vel_y = -meters_sec * math.cos(angle_radian)
 
         return vel_x, vel_y, vel_z
+
+
+    def fly_circle(self):
+        print("Beginning circle pattern...")
+        start_time = time.time()
+        duration = 60
+        angle_radian = 0.0
+        radius = 3
+        meters_sec = self.calculate_meters_sec(radius)
+
+        while time.time() - start_time <= duration:
+            angle_radian = self.circle_steps(radius, angle_radian, meters_sec)
+            time.sleep(0.1)
 
 
     def calculate_meters_sec(self, radius):

@@ -1,5 +1,7 @@
-# Core runtime dependency — required to run drone.py / main.py / scripts
+# Core runtime dependencies — required to run drone.py / main.py / scripts
 pymavlink==2.4.49
+opencv-python==5.0.0.93
+mediapipe==0.10.14
 
 # SITL / simulation tooling (see README "Common first-run dependency gaps")
 # Not imported by this project's code directly, but needed to run MAVProxy/SITL locally
@@ -7,5 +9,3 @@ empy==3.3.4
 MAVProxy==1.8.74
 future==1.0.0
 matplotlib==3.11.1
-opencv-python==5.0.0.93
-mediapipe==0.10.14

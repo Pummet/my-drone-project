@@ -1,3 +1,4 @@
+from pymavlink import mavutil
 import time
 
 
@@ -5,7 +6,7 @@ import time
 ''' WAYPOINT FILE LOADING, AND THE MISSION UPLOAD/EXECUTE/CLEARS FUNCTIONS '''
 
 
-class Drone_Missions():
+class Drone_Waypoints():
     # Reads waypoints from a .txt file and returns them as a list of lists
     def load_waypoint(self, path):
         print(f"Loading from: {path}")
@@ -57,6 +58,8 @@ class Drone_Missions():
             )
 
 
+
+
     # Auto mode starts to execute loaded mission
     def waypoint_tracker(self):
         print("Mission Started!")
@@ -81,7 +84,7 @@ class Drone_Missions():
 
 
     # Function to clear loaded waypoints
-    def clear_mission(self):
+    def clear_waypoints(self):
         self.vehicle.mav.mission_clear_all_send(
             self.vehicle.target_system,
             self.vehicle.target_component,

@@ -34,11 +34,43 @@ class Drone_Commands():
             print(f"Flight mode changed to {mode}")
 
 
+    def drone_takeoff(self, target_altitude):
+        self.vehicle.mav.command_long_send( # pymavlink function for sending action commands
+            self.vehicle.target_system, # which drone to send it to, important for swarms
+            self.vehicle.target_component, # which component on the drone, usually autopilot
+            mavutil.mavlink.MAV_CMD_NAV_TAKEOFF, # MAVLink command ID
+            0, 0, 0, 0, 0, 0, 0, # First 0 means send once, next 6 not used for takeoff
+            target_altitude
+        )
+
+        ack = self.vehicle.recv_match(type = "COMMAND_ACK", blocking = True, timeout = 5)
+
+        if ack is None or ack.result != mavutil.mavlink.MAV_RESULT_ACCEPTED:
+            print("Drone launch command not accepted.")
+            return
+
+        print("Takeoff started.")
+
+        last_print = 0
+
+        while True:
+            altitude = self.get_altitude()
+            now = time.time()
+
+            if now - last_print >= 1:
+                print(f"Altitude: {altitude:.1f}m")
+                last_print = now
+
+            if altitude >= target_altitude * 0.95:
+                print("Target altitude reached.")
+                break
+
+
     # Function to move the drone to specific GPS coordinates
     def send_coords_gps(self, lat, lon, alt):
         self.change_flight_mode("guided")
 
-        if not self.is_armed():
+        if not self.armed():
             print("Drone is not armed. Cannot go to coordinates.")
             return
 

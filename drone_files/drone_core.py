@@ -13,7 +13,7 @@ class Drone_Core():
 
         self.vehicle = mavutil.mavlink_connection(self.connection, baud = self.baud) # Sending connection string to MavLink
         self.vehicle.wait_heartbeat() # waiting for connection confirmation before continuing
-        print(f"Heartbeat from system {self.vehicle.target_system}, component {self.vehicle.target_component}")
+        print(f"Heartbeat recieved, connection successful!")
 
         # Requesting data from FC
         self.vehicle.mav.request_data_stream_send(
@@ -54,7 +54,7 @@ class Drone_Core():
 
 
     def drone_disarm(self):
-        while self.is_armed() is not False:
+        while self.armed() is not False:
             altitude = self.get_altitude()
 
             # Checking if drone is within 20cm of ground
@@ -67,7 +67,7 @@ class Drone_Core():
 
 
     # Returns True if armed, False if not, and None if no message
-    def is_armed(self):
+    def armed(self):
         heartbeat_msg = self.vehicle.recv_match(type = "HEARTBEAT", blocking = True, timeout = 2)
 
         if heartbeat_msg is None:
@@ -79,38 +79,6 @@ class Drone_Core():
             # specifically armed/disarmed. Using bitwise AND to check if bit 7 is set.
             return bool(heartbeat_msg.base_mode & 128)
         
-
-    def drone_takeoff(self, target_altitude):
-        self.vehicle.mav.command_long_send( # pymavlink function for sending action commands
-            self.vehicle.target_system, # which drone to send it to, important for swarms
-            self.vehicle.target_component, # which component on the drone, usually autopilot
-            mavutil.mavlink.MAV_CMD_NAV_TAKEOFF, # MAVLink command ID
-            0, 0, 0, 0, 0, 0, 0, # First 0 means send once, next 6 not used for takeoff
-            target_altitude
-        )
-
-        ack = self.vehicle.recv_match(type = "COMMAND_ACK", blocking = True, timeout = 5)
-
-        if ack is None or ack.result != mavutil.mavlink.MAV_RESULT_ACCEPTED:
-            print("Drone launch command not accepted.")
-            return
-        
-        print("Takeoff started.")
-
-        last_print = 0
-
-        while True:
-            altitude = self.get_altitude()
-            now = time.time()
-
-            if now - last_print >= 1:
-                print(f"Altitude: {altitude:.1f}m")
-                last_print = now
-
-            if altitude >= target_altitude * 0.95:
-                print("Target altitude reached.")
-                break
-
 
     # Function to get local NED coordinates from drone, home is (0,0,0)
     def get_position_ned(self):
@@ -141,6 +109,11 @@ class Drone_Core():
     # Function that returns drone altitude in meters
     def get_altitude(self):
         alt_msg = self.vehicle.recv_match(type="GLOBAL_POSITION_INT", blocking = True)
+
+        if alt_msg is None:
+            print("No altitude message recieved.")
+            return None
+        
         return alt_msg.relative_alt / 1000
 
 
@@ -172,7 +145,7 @@ class Drone_Core():
         disarmed_count = 0 # Intermitten failures due to stale messages
 
         while True:
-            armed = self.is_armed()
+            armed = self.armed()
 
             if armed == True:
                 disarmed_count = 0

@@ -25,6 +25,4 @@ if target_altitude <= 0 or target_altitude > 20:
 else:
     drone_1.guided_arm_takeoff(target_altitude)
     time.sleep(8)
-    drone_1.change_flight_mode("rtl")
-    drone_1.drone_disarm()
-    drone_1.close()
+    drone_1.rtl_disarm()

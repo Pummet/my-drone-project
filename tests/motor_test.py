@@ -67,4 +67,4 @@ def motor(vehicle, motor_number, throttle_percent, duration_sec):
 
 
 if __name__ == '__main__':
-    main()
+    motor_test()

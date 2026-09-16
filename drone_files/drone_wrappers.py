@@ -17,25 +17,24 @@ class Drone_Wrappers():
     def land_disarm(self):
         self.change_flight_mode("land")
         self.drone_disarm()
+        self.close()
+
+
+    def rtl_disarm(self):
+        self.change_flight_mode("rtl")
+        self.drone_disarm()
+        self.close()
 
 
     def waypoint_mission(self):
         waypoints = self.load_waypoint(settings.path)
         self.upload_waypoints(waypoints)
-        if self.is_armed():
+
+        armed_state = self.armed()
+        if armed_state is True:
             self.change_flight_mode("auto")
-        else:
+            self.waypoint_tracker()
+        elif armed_state is False:
             print("Drone is not armed")
-
-
-    def fly_circle(self):
-        print("Beginning circle pattern...")
-        start_time = time.time()
-        duration = 60
-        angle_radian = 0.0
-        radius = 3
-        meters_sec = self.calculate_meters_sec(radius)
-
-        while time.time() - start_time <= duration:
-            angle_radian = self.circle_steps(radius, angle_radian, meters_sec)
-            time.sleep(0.1)
+        else:
+            print("Could not confirm arm state, no heartbeat recieved")
