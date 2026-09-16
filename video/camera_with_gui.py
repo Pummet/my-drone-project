@@ -81,6 +81,7 @@ def main():
                             )
 
                     which_hand = results.multi_handedness[hand].classification[0].label
+                    print(f"Hand: {which_hand}")
 
                     for tip in range(4, 21, 4): # Just hitting tips (4, 8, 12, 16, 20)
                         if tip == 4:

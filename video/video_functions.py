@@ -61,14 +61,14 @@ def finger_counter():
                         if hand_landmarks.landmark[tip].y < hand_landmarks.landmark[tip - 2].y:
                             current_count += 1
 
-            # Checking for 15 frames with the same hand signal in a row, then returning it
+            # Checking for 10 frames with the same hand signal in a row, then returning it
             if last_count != current_count:
                 last_count = current_count
                 streak_length = 1
             else:
                 streak_length += 1
-
-            if streak_length > 15:
+            print(f"STREAK: {streak_length}")
+            if streak_length > 10:
                 return last_count
 
 

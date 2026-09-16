@@ -21,7 +21,6 @@ def pi_or_sim():
 
 if __name__ == "__main__":
     drone = pi_or_sim()
-    drone.drone_takeoff(2)
 
     missions = {
         1: drone.guided_arm_takeoff,

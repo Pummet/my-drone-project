@@ -11,8 +11,7 @@ class Drone_Wrappers():
         self.change_flight_mode("guided")
         self.drone_arm()
         time.sleep(1)
-        if self.is_armed():
-            self.drone_takeoff(target_altitude)
+        self.drone_takeoff(target_altitude)
 
 
     def land_disarm(self):
@@ -30,6 +29,7 @@ class Drone_Wrappers():
 
 
     def fly_circle(self):
+        print("Beginning circle pattern...")
         start_time = time.time()
         duration = 60
         angle_radian = 0.0
@@ -38,3 +38,4 @@ class Drone_Wrappers():
 
         while time.time() - start_time <= duration:
             angle_radian = self.circle_steps(radius, angle_radian, meters_sec)
+            time.sleep(0.1)
