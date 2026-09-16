@@ -6,8 +6,9 @@ import time, math
 
 
 class Drone_Patterns():
-    def send_and_monitor_position_ned(
-            self, coords, timeout = None, yaw = None, reps = 1, position_tolerance = 0.2):
+    def send_and_monitor_position_ned(self, coords, timeout = None, 
+                                      yaw = None, reps = 1, 
+                                      position_tolerance = 0.2):
 
         yaw_change = yaw
 
@@ -39,7 +40,7 @@ class Drone_Patterns():
 
 
     # Jittery, drones starts and stops at every point....
-    def move_circle_terrible(self, radius = 10):
+    def fly_circle_terrible(self, radius = 10):
         start_x, start_y, start_z = self.get_position_ned()
         degrees = 0
 
@@ -59,18 +60,6 @@ class Drone_Patterns():
                 degrees += 10
 
             self.send_and_monitor_position_ned(coords)
-
-
-    # Continuous function to spam circle_steps
-    def fly_circle(self):
-        start_time = time.time()
-        duration = 60
-        angle_radian = 0.0
-        radius = 3
-        meters_sec = self.calculate_meters_sec(radius)
-
-        while time.time() - start_time <= duration:
-            angle_radian = self.circle_steps(radius, angle_radian, meters_sec)
 
 
     # Smooth circular movement using vectors
@@ -132,7 +121,7 @@ class Drone_Patterns():
 
 
     # Function for moving in a figure eight. (2 circles, cheat!)
-    def move_figure_eight(self, radius = 3, duration = 60):
+    def fly_figure_eight(self, radius = 3, duration = 60):
         meters_sec = self.calculate_meters_sec(radius)
 
         start_time = time.time()
@@ -163,7 +152,7 @@ class Drone_Patterns():
 
     # Function to move the drone in a square.
     # Relative to current position
-    def move_square(self, size = 5):
+    def fly_square(self, size = 5):
         start_pos = list(self.get_position_ned())
 
         moves = [(size, 0, 0),(0, size, 0),(-size, 0, 0),(0, -size, 0)]
@@ -180,5 +169,5 @@ class Drone_Patterns():
         self.send_and_monitor_position_ned(full_coords, yaw = 90, reps = 5)
 
 
-    def move_spiral_up(self):
+    def fly_spiral_up(self):
         pass

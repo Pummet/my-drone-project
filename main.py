@@ -1,5 +1,5 @@
 from drone_files.drone import Drone
-import vision.camera_functions
+import video.video_functions
 
 import settings, sys
 
@@ -25,9 +25,9 @@ if __name__ == "__main__":
 
     missions = {
         1: drone.guided_arm_takeoff,
-        2: drone.move_square,
+        2: drone.fly_square,
         3: drone.fly_circle,
-        4: drone.move_figure_eight,
+        4: drone.fly_figure_eight,
         5: "",
         6: "",
         7: "",
@@ -36,12 +36,12 @@ if __name__ == "__main__":
         }
 
     while True:
-        gesture = vision.camera_functions.finger_counter()
+        gesture = video.video_functions.finger_counter()
 
         if gesture in missions:
             missions[gesture]()
         elif gesture == 10:
-            vision.camera_functions.release_camera()
+            video.video_functions.release_camera()
             drone.drone_disarm()
             drone.close()
             print("Drone disconnecting...")

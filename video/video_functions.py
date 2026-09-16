@@ -9,7 +9,7 @@ cap = cv.VideoCapture(0) # Camera index
 
 # Was in a WITH block before, but this rebuilds the module every call
 # Better outside of the function where it can be built once, but I must manually close it
-hands = mp_hands.Hands(max_num_hands=2, min_detection_confidence=0.7, min_tracking_confidence=0.7)
+hands = mp_hands.Hands(max_num_hands = 2, min_detection_confidence = 0.7, min_tracking_confidence = 0.7)
 
 def finger_counter():
     last_count = 0
@@ -61,21 +61,21 @@ def finger_counter():
                         if hand_landmarks.landmark[tip].y < hand_landmarks.landmark[tip - 2].y:
                             current_count += 1
 
-            # Checking for 30 frames with the same hand signal in a row, then returning it
+            # Checking for 15 frames with the same hand signal in a row, then returning it
             if last_count != current_count:
                 last_count = current_count
                 streak_length = 1
             else:
                 streak_length += 1
 
-            if streak_length > 30:
+            if streak_length > 15:
                 return last_count
 
 
 def release_camera():
     hands.close()
     cap.release()
-        
+
 
 if __name__ == "__main__":
     finger_counter()

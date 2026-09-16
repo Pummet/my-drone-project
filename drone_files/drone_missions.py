@@ -29,7 +29,7 @@ class Drone_Missions():
         
 
     # Function to upload waypoints list to the drone
-    def upload_mission(self, waypoints):
+    def upload_waypoints(self, waypoints):
         # Drone needs to know how many waypoints
         self.vehicle.mav.mission_count_send(
             self.vehicle.target_system, # which drone

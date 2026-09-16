@@ -15,7 +15,7 @@ drone_1 = main.pi_or_sim()
 
 drone_1.guided_arm_takeoff()
 
-drone_1.move_figure_eight()
+drone_1.fly_figure_eight()
 
 drone_1.change_flight_mode("rtl")
 drone_1.drone_disarm()

@@ -17,3 +17,5 @@ if drone.wait_heartbeat(timeout = 5) is None:
 
 else:
     print(f"Heartbeat received from system {drone.target_system}")
+
+drone.close()

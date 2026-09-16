@@ -39,8 +39,8 @@ def main():
 
             # Flipping image so more intuitive
             frame = cv.flip(frame, 1)
-            h, w, _ = frame.shape 
-
+            h, w, _ = frame.shape
+            
             # OCV gives BGR, convert to RGB here for MediaPipe
             rgb = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
 
@@ -57,7 +57,7 @@ def main():
                         frame,
                         hand_landmarks,
                         mp_hands.HAND_CONNECTIONS
-                    )
+                        )
 
                     # Draw labels
                     finger_tips = {
@@ -66,7 +66,7 @@ def main():
                         "Middle": hand_landmarks.landmark[12],
                         "Ring": hand_landmarks.landmark[16],
                         "Pinky": hand_landmarks.landmark[20]
-                    }
+                        }
 
                     for name, landmark in finger_tips.items():
                         x, y = int(landmark.x * w), int(landmark.y * h)
@@ -78,7 +78,7 @@ def main():
                             0.5,
                             (255, 255, 255),
                             1
-                        )
+                            )
 
                     which_hand = results.multi_handedness[hand].classification[0].label
 

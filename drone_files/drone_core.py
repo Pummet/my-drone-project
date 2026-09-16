@@ -45,6 +45,27 @@ class Drone_Core():
         self.vehicle.close()
 
 
+
+    def drone_arm(self):
+        self.vehicle.arducopter_arm()
+        print("Arming...")
+        self.vehicle.motors_armed_wait()
+        print("Armed!")
+
+
+    def drone_disarm(self):
+        while self.is_armed() is not False:
+            altitude = self.get_altitude()
+
+            # Checking if drone is within 20cm of ground
+            if altitude < 0.2:
+                self.vehicle.arducopter_disarm()
+                print("Disarming...")
+                self.vehicle.motors_disarmed_wait()
+                print("Disarmed!")
+                break
+
+
     # Returns True if armed, False if not, and None if no message
     def is_armed(self):
         heartbeat_msg = self.vehicle.recv_match(type = "HEARTBEAT", blocking = True, timeout = 2)
@@ -57,6 +78,38 @@ class Drone_Core():
             # base_mode is a bitmask, 128 = armed. Many commands in the same byte, bit 7 is 
             # specifically armed/disarmed. Using bitwise AND to check if bit 7 is set.
             return bool(heartbeat_msg.base_mode & 128)
+        
+
+    def drone_takeoff(self, target_altitude):
+        self.vehicle.mav.command_long_send( # pymavlink function for sending action commands
+            self.vehicle.target_system, # which drone to send it to, important for swarms
+            self.vehicle.target_component, # which component on the drone, usually autopilot
+            mavutil.mavlink.MAV_CMD_NAV_TAKEOFF, # MAVLink command ID
+            0, 0, 0, 0, 0, 0, 0, # First 0 means send once, next 6 not used for takeoff
+            target_altitude
+        )
+
+        ack = self.vehicle.recv_match(type = "COMMAND_ACK", blocking = True, timeout = 5)
+
+        if ack is None or ack.result != mavutil.mavlink.MAV_RESULT_ACCEPTED:
+            print("Drone launch command not accepted.")
+            return
+        
+        print("Takeoff started.")
+
+        last_print = 0
+
+        while True:
+            altitude = self.get_altitude()
+            now = time.time()
+
+            if now - last_print >= 1:
+                print(f"Altitude: {altitude:.1f}m")
+                last_print = now
+
+            if altitude >= target_altitude * 0.95:
+                print("Target altitude reached.")
+                break
 
 
     # Function to get local NED coordinates from drone, home is (0,0,0)
