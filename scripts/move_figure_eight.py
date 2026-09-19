@@ -13,7 +13,7 @@ import main
 drone_1 = main.pi_or_sim()
 
 
-drone_1.guided_arm_takeoff()
+drone_1.guided_arm_takeoff(10)
 
 drone_1.fly_figure_eight()
 
