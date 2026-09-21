@@ -22,7 +22,7 @@ def finger_counter():
         success, frame = cap.read() # returns bool and frame from camera
         current_count = 0
 
-        # Loop to try again if first read fails, breaks when success = True
+        # Loop to try again if first read fails, skips when success = True
         while not success and attempt < 5:
             time.sleep(0.1)
             success, frame = cap.read()
@@ -42,10 +42,11 @@ def finger_counter():
         # 21 landmark points on each hand
         results = hands.process(rgb)
 
-        # if its found hands, draw landmarks
+        # If hands are found, count extended fingers per hand
         if results.multi_hand_landmarks:
             for hand, hand_landmarks in enumerate(results.multi_hand_landmarks):
 
+                # Label is Left or Right hand!
                 which_hand = results.multi_handedness[hand].classification[0].label
 
                 for tip in range(4, 21, 4): # Just hitting tips (4, 8, 12, 16, 20)
@@ -54,7 +55,7 @@ def finger_counter():
                         if which_hand == "Left":
                             if hand_landmarks.landmark[tip].x > hand_landmarks.landmark[tip - 1].x:
                                 current_count += 1
-                        else:
+                        else: # Right hand
                             if hand_landmarks.landmark[tip].x < hand_landmarks.landmark[tip - 1].x:
                                 current_count += 1
                     else:            
@@ -68,7 +69,7 @@ def finger_counter():
             else:
                 streak_length += 1
             print(f"STREAK: {streak_length}")
-            if streak_length > 10:
+            if streak_length >= 10:
                 return last_count
 
 
