@@ -3,6 +3,9 @@ import mediapipe as mp
 import time
 
 
+''' HEADLESS FOR DRONE/PI'''
+
+
 mp_hands = mp.solutions.hands # this is the whole Hands module, think of a toolbox, from that I use the tool .Hands
 
 cap = cv.VideoCapture(0) # Camera index
@@ -10,6 +13,15 @@ cap = cv.VideoCapture(0) # Camera index
 # Was in a WITH block before, but this rebuilds the module every call
 # Better outside of the function where it can be built once, but I must manually close it
 hands = mp_hands.Hands(max_num_hands = 2, min_detection_confidence = 0.7, min_tracking_confidence = 0.7)
+
+# frame_capture_success()
+# count_fingers()
+# continuous_capture()
+
+
+
+
+
 
 def finger_counter():
     last_count = 0
@@ -49,29 +61,59 @@ def finger_counter():
                 # Label is Left or Right hand!
                 which_hand = results.multi_handedness[hand].classification[0].label
 
-                for tip in range(4, 21, 4): # Just hitting tips (4, 8, 12, 16, 20)
+                hand_orientation = front_back_hand(which_hand, hand_landmarks)
+
+                for tip in range(4, 21, 4): # Just hitting fingertips (4, 8, 12, 16, 20)
                     if tip == 4:
-                        # Trying to catch thumbs here, tricky!
+                        # Trying to catch thumbs[4] here, tricky!
+                        # Thumb is extended if tip is left/right of thumb knuckle depending on hand/orientation
                         if which_hand == "Left":
-                            if hand_landmarks.landmark[tip].x > hand_landmarks.landmark[tip - 1].x:
-                                current_count += 1
-                        else: # Right hand
-                            if hand_landmarks.landmark[tip].x < hand_landmarks.landmark[tip - 1].x:
-                                current_count += 1
-                    else:            
+                            if hand_orientation == "front":
+                                if hand_landmarks.landmark[tip].x > hand_landmarks.landmark[tip - 1].x:
+                                    current_count += 1
+                            elif hand_orientation == "back":
+                                if hand_landmarks.landmark[tip].x < hand_landmarks.landmark[tip - 1].x:
+                                    current_count += 1
+                        elif which_hand == "Right":
+                            if hand_orientation == "front":
+                                if hand_landmarks.landmark[tip].x < hand_landmarks.landmark[tip - 1].x:
+                                    current_count += 1
+                            elif hand_orientation == "back":
+                                if hand_landmarks.landmark[tip].x > hand_landmarks.landmark[tip - 1].x:
+                                    current_count += 1
+                    else: # finger is extended if tip is above knuckle
                         if hand_landmarks.landmark[tip].y < hand_landmarks.landmark[tip - 2].y:
                             current_count += 1
 
-            # Checking for 10 frames with the same hand signal in a row, then returning it
+            print(f"Hand: {which_hand}, {hand_orientation}, fingers {current_count}")
+
+            # Checking for 15 frames with the same finger count in a row, then returns it
             if last_count != current_count:
                 last_count = current_count
                 streak_length = 1
             else:
                 streak_length += 1
+
             print(f"STREAK: {streak_length}")
-            if streak_length >= 10:
+
+            if streak_length >= 1500:
                 return last_count
 
+
+# returns "front" or "back" of hand
+def front_back_hand(which_hand, hand_landmarks):
+    # Checking x position of thumb knuckle[2] vs pinky knuckle[17] to determine front or back of hand
+    if which_hand == "Right":
+        if hand_landmarks.landmark[2].x < hand_landmarks.landmark[17].x:
+            return "front"
+        else:
+            return "back"
+    else:
+        if hand_landmarks.landmark[2].x > hand_landmarks.landmark[17].x:
+            return "front"
+        else:
+            return "back"
+    
 
 def release_camera():
     hands.close()

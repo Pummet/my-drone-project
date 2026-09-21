@@ -3,6 +3,9 @@ import mediapipe as mp
 import time
 
 
+''' FOR TESTING ON COMPUTER WITH WEBCAM - FULL GUI '''
+
+
 mp_hands = mp.solutions.hands # this is the whole Hands module, think of a toolbox, from that I use the tool .Hands
 mp_draw = mp.solutions.drawing_utils # for drawing the connections
 
@@ -80,19 +83,33 @@ def main():
                             1
                             )
 
+                    # This is for Left or Right hand
                     which_hand = results.multi_handedness[hand].classification[0].label
-                    print(f"Hand: {which_hand}")
 
-                    for tip in range(4, 21, 4): # Just hitting tips (4, 8, 12, 16, 20)
+                    hand_orientation = front_back_hand(which_hand, hand_landmarks)
+
+                    print(f"Hand: {which_hand}, {hand_orientation}")
+
+                    # Counting extended fingers
+                    for tip in range(4, 21, 4): # Just hitting fingertips (4, 8, 12, 16, 20)
                         if tip == 4:
-                            # Trying to catch thumbs here, tricky!
+                            # Trying to catch thumbs[4] here, tricky!
+                            # Thumb is extended if tip is left/right of thumb knuckle depending on hand/orientation
                             if which_hand == "Left":
-                                if hand_landmarks.landmark[tip].x > hand_landmarks.landmark[tip - 1].x:
-                                    fingers_up += 1
-                            else:
-                                if hand_landmarks.landmark[tip].x < hand_landmarks.landmark[tip - 1].x:
-                                    fingers_up += 1
-                        else:            
+                                if hand_orientation == "front":
+                                    if hand_landmarks.landmark[tip].x > hand_landmarks.landmark[tip - 1].x:
+                                        fingers_up += 1
+                                elif hand_orientation == "back":
+                                    if hand_landmarks.landmark[tip].x < hand_landmarks.landmark[tip - 1].x:
+                                        fingers_up += 1
+                            elif which_hand == "Right":
+                                if hand_orientation == "front":
+                                    if hand_landmarks.landmark[tip].x < hand_landmarks.landmark[tip - 1].x:
+                                        fingers_up += 1
+                                elif hand_orientation == "back":
+                                    if hand_landmarks.landmark[tip].x > hand_landmarks.landmark[tip - 1].x:
+                                        fingers_up += 1
+                        else: # finger is extended if tip is above knuckle
                             if hand_landmarks.landmark[tip].y < hand_landmarks.landmark[tip - 2].y:
                                 fingers_up += 1
 
@@ -109,7 +126,20 @@ def main():
     cv.destroyAllWindows()
 
 
-
+# returns "front" or "back" of hand
+def front_back_hand(which_hand, hand_landmarks):
+    # Checking x position of thumb knuckle[2] vs pinky knuckle[17] to determine front or back of hand
+    if which_hand == "Right":
+        if hand_landmarks.landmark[2].x < hand_landmarks.landmark[17].x:
+            return "front"
+        else:
+            return "back"
+    else:
+        if hand_landmarks.landmark[2].x > hand_landmarks.landmark[17].x:
+            return "front"
+        else:
+            return "back"
+        
 
 if __name__ == "__main__":
     main()

@@ -17,7 +17,6 @@
 #   In the field AP:   ssh pummet@192.168.4.1
 
 
-
 #################### NOTES ####################
 # GIT PULL BEFORE STARTING
 
