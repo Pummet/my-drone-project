@@ -3,7 +3,8 @@ import mediapipe as mp
 import time
 
 
-''' FOR TESTING ON COMPUTER WITH WEBCAM - FULL GUI '''
+''' FOR TESTING ON COMPUTER WITH WEBCAM - FULL GUI 
+       THIS IS MESSY AND JUST FOR DEV COMPUTER     '''
 
 
 mp_hands = mp.solutions.hands # this is the whole Hands module, think of a toolbox, from that I use the tool .Hands
@@ -74,21 +75,19 @@ def main():
                     for name, landmark in finger_tips.items():
                         x, y = int(landmark.x * w), int(landmark.y * h)
                         cv.putText(
-                            frame,
-                            name,
-                            (x, y - 20),
-                            cv.FONT_HERSHEY_SIMPLEX,
-                            0.5,
-                            (255, 255, 255),
-                            1
+                            frame,                   # image to draw on
+                            name,                    # text string
+                            (x, y - 20),             # coords of text
+                            cv.FONT_HERSHEY_SIMPLEX, # font
+                            0.5,                     # font scale
+                            (255, 255, 255),         # colour
+                            1                        # thickness
                             )
 
                     # This is for Left or Right hand
                     which_hand = results.multi_handedness[hand].classification[0].label
 
                     hand_orientation = front_back_hand(which_hand, hand_landmarks)
-
-                    print(f"Hand: {which_hand}, {hand_orientation}")
 
                     # Counting extended fingers
                     for tip in range(4, 21, 4): # Just hitting fingertips (4, 8, 12, 16, 20)
@@ -113,7 +112,27 @@ def main():
                             if hand_landmarks.landmark[tip].y < hand_landmarks.landmark[tip - 2].y:
                                 fingers_up += 1
 
-                print(f"Fingers up: {fingers_up}")
+                # Drawing info on image (hand, orientation, and finger count)
+                if which_hand == "Left":
+                    cv.putText(
+                        frame, 
+                        f"{which_hand.upper()} | {hand_orientation.upper()} | {fingers_up}",
+                        (10, 30),
+                        cv.FONT_HERSHEY_SIMPLEX,
+                        1,
+                        (255, 255, 255),
+                        2
+                    )
+                elif which_hand == "Right":
+                    cv.putText(
+                        frame, 
+                        f"{fingers_up} | {hand_orientation.upper()} | {which_hand.upper()}",
+                        (720, 30),
+                        cv.FONT_HERSHEY_SIMPLEX,
+                        1,
+                        (255, 255, 255),
+                        2
+                    )
 
             # Opens windows
             cv.imshow("Frame", frame)

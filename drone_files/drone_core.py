@@ -45,7 +45,6 @@ class Drone_Core():
         self.vehicle.close()
 
 
-
     def drone_arm(self):
         self.vehicle.arducopter_arm()
         print("Arming...")

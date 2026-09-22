@@ -14,90 +14,112 @@ cap = cv.VideoCapture(0) # Camera index
 # Better outside of the function where it can be built once, but I must manually close it
 hands = mp_hands.Hands(max_num_hands = 2, min_detection_confidence = 0.7, min_tracking_confidence = 0.7)
 
-# frame_capture_success()
-# count_fingers()
-# continuous_capture()
 
-
-
-
-
-
+# Wrapper function
 def finger_counter():
+    print("Waiting for next gesture...")
     last_count = 0
     streak_length = 0
 
-    print("Waiting for next gesture...")
-
     while True:
-        attempt = 0
-        success, frame = cap.read() # returns bool and frame from camera
-        current_count = 0
+        rgb = frame_capture_success()
 
-        # Loop to try again if first read fails, skips when success = True
-        while not success and attempt < 5:
-            time.sleep(0.1)
-            success, frame = cap.read()
-            attempt += 1
-
-        # 5 fails triggers this
-        if not success:
-            print("Failed to read frame")
-            cap.release()
+        if rgb is None:
             break
 
-        # OCV gives BGR, convert to RGB here for MediaPipe
-        rgb = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
+        # passing converted frame into count_fingers
+        current_count = count_fingers(rgb)
 
-        # process() runs the hand detection model on the RGB converted frame
-        # main thing it returns is multi_hand_landmarks
-        # 21 landmark points on each hand
-        results = hands.process(rgb)
+        # checking if current frame is same as lost, 15 frames in a row confirmed = True
+        last_count, streak_length, confirmed = continuous_capture(current_count, last_count, streak_length)
+        
+        if confirmed:
+            return last_count
 
-        # If hands are found, count extended fingers per hand
-        if results.multi_hand_landmarks:
-            for hand, hand_landmarks in enumerate(results.multi_hand_landmarks):
 
-                # Label is Left or Right hand!
-                which_hand = results.multi_handedness[hand].classification[0].label
+# Function to confirm that success of a frame grab, converts frame to RGB for and returns for MediaPipe
+def frame_capture_success():
+    attempt = 0
+    success, frame = cap.read() # returns bool and frame from camera
 
-                hand_orientation = front_back_hand(which_hand, hand_landmarks)
+    # Loop to try again if first read fails, skips when success = True
+    while not success and attempt < 5:
+        time.sleep(0.1)
+        success, frame = cap.read()
+        attempt += 1
 
-                for tip in range(4, 21, 4): # Just hitting fingertips (4, 8, 12, 16, 20)
-                    if tip == 4:
-                        # Trying to catch thumbs[4] here, tricky!
-                        # Thumb is extended if tip is left/right of thumb knuckle depending on hand/orientation
-                        if which_hand == "Left":
-                            if hand_orientation == "front":
-                                if hand_landmarks.landmark[tip].x > hand_landmarks.landmark[tip - 1].x:
-                                    current_count += 1
-                            elif hand_orientation == "back":
-                                if hand_landmarks.landmark[tip].x < hand_landmarks.landmark[tip - 1].x:
-                                    current_count += 1
-                        elif which_hand == "Right":
-                            if hand_orientation == "front":
-                                if hand_landmarks.landmark[tip].x < hand_landmarks.landmark[tip - 1].x:
-                                    current_count += 1
-                            elif hand_orientation == "back":
-                                if hand_landmarks.landmark[tip].x > hand_landmarks.landmark[tip - 1].x:
-                                    current_count += 1
-                    else: # finger is extended if tip is above knuckle
-                        if hand_landmarks.landmark[tip].y < hand_landmarks.landmark[tip - 2].y:
+    # 5 fails triggers this
+    if not success:
+        print("Failed to read frame.")
+        cap.release()
+        return
+
+    # Flipping frame
+    frame = cv.flip(frame, 1)
+    # OCV gives BGR, convert to RGB for MediaPipe
+    rgb = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
+
+    return rgb
+
+
+# Function that returns the number of extended fingers
+def count_fingers(rgb):
+    # process() runs the hand detection model on the RGB converted frame
+    # main thing it returns is multi_hand_landmarks
+    # 21 landmark points on each hand
+    results = hands.process(rgb)
+    current_count = 0
+
+    if not results.multi_hand_landmarks:
+        return current_count
+    
+    for hand, hand_landmarks in enumerate(results.multi_hand_landmarks):
+
+        # Label is Left or Right hand!
+        which_hand = results.multi_handedness[hand].classification[0].label
+
+        hand_orientation = front_back_hand(which_hand, hand_landmarks)
+
+        for tip in range(4, 21, 4): # Just checking fingertips (4, 8, 12, 16, 20)
+            if tip == 4:
+                # Trying to catch thumbs[4] here, tricky!
+                # Thumb is extended if tip is left/right of thumb knuckle depending on hand/orientation
+                if which_hand == "Left":
+                    if hand_orientation == "front":
+                        if hand_landmarks.landmark[tip].x > hand_landmarks.landmark[tip - 1].x:
                             current_count += 1
+                    elif hand_orientation == "back":
+                        if hand_landmarks.landmark[tip].x < hand_landmarks.landmark[tip - 1].x:
+                            current_count += 1
+                elif which_hand == "Right":
+                    if hand_orientation == "front":
+                        if hand_landmarks.landmark[tip].x < hand_landmarks.landmark[tip - 1].x:
+                            current_count += 1
+                    elif hand_orientation == "back":
+                        if hand_landmarks.landmark[tip].x > hand_landmarks.landmark[tip - 1].x:
+                            current_count += 1
+            else: # finger is extended if tip is above knuckle
+                if hand_landmarks.landmark[tip].y < hand_landmarks.landmark[tip - 2].y:
+                    current_count += 1
 
-            print(f"Hand: {which_hand}, {hand_orientation}, fingers {current_count}")
+        print(f"Hand: {which_hand}, {hand_orientation}, fingers {current_count}")
 
-            # Checking for 15 frames with the same finger count in a row, then returns it
-            if last_count != current_count:
-                last_count = current_count
-                streak_length = 1
-            else:
-                streak_length += 1
+    return current_count
 
-            print(f"STREAK: {streak_length}")
+    
+# Function that checks 15 frames in a row with the same gesture
+def continuous_capture(current_count, last_count, streak_length):
+    if current_count == 0: # checking 0 to stop confirmation when no hands on frame (0 fingers)
+        streak_length = 0
+    elif last_count != current_count:
+        last_count = current_count
+        streak_length = 1
+    else:
+        streak_length += 1
 
-            if streak_length >= 1500:
-                return last_count
+    confirmed = streak_length >= 15000
+
+    return last_count, streak_length, confirmed
 
 
 # returns "front" or "back" of hand
