@@ -6,9 +6,26 @@ import time
 ''' HEADLESS FOR DRONE/PI'''
 
 
-mp_hands = mp.solutions.hands # this is the whole Hands module, think of a toolbox, from that I use the tool .Hands
+# This is a guarded import. PiCamera2 only exists on the Pi, so this
+# will stop the program crashing when run on desktop with webcam
+try:
+    from picamera2 import Picamera2
+    has_pi_camera = True
+except ImportError:
+    has_pi_camera = False
 
-cap = cv.VideoCapture(0) # Camera index
+camera_size = (640, 480)
+
+if has_pi_camera:
+    cap = Picamera2()
+    cap.configure(cap.create_preview_configuration(main = {"size": camera_size, "format": "RGB888"}))
+    cap.start()
+else:
+    cap = cv.VideoCapture(0)   # Camera index
+    cap.set(3, camera_size[0]) # 3 = width
+    cap.set(4, camera_size[1]) # 4 = height
+
+mp_hands = mp.solutions.hands # this is the whole Hands module, think of a toolbox, from that I use the tool .Hands
 
 # Was in a WITH block before, but this rebuilds the module every call
 # Better outside of the function where it can be built once, but I must manually close it
@@ -37,21 +54,35 @@ def finger_counter():
             return last_count
 
 
+# Function to get a frame from either PiCamera or open CV
+def get_frame():
+    if has_pi_camera:
+        try:
+            frame = cap.capture_array()
+            # returning bool and frame to match output for OpenCV, simplifies rest of code
+            return frame is not None, frame
+        except Exception:
+            return False, None
+    else:
+        return cap.read() # Returns bool and frame from camera
+
+
+
 # Function to confirm that success of a frame grab, converts frame to RGB for and returns for MediaPipe
 def frame_capture_success():
     attempt = 0
-    success, frame = cap.read() # returns bool and frame from camera
+    success, frame = get_frame() # returns bool and frame from camera
 
     # Loop to try again if first read fails, skips when success = True
     while not success and attempt < 5:
         time.sleep(0.1)
-        success, frame = cap.read()
+        success, frame = get_frame()
         attempt += 1
 
     # 5 fails triggers this
     if not success:
         print("Failed to read frame.")
-        cap.release()
+        release_camera()
         return
 
     # Flipping frame
@@ -139,7 +170,11 @@ def front_back_hand(which_hand, hand_landmarks):
 
 def release_camera():
     hands.close()
-    cap.release()
+    if has_pi_camera:
+        cap.stop()
+        cap.close()
+    else:
+        cap.release()
 
 
 if __name__ == "__main__":
