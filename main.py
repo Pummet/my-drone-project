@@ -10,7 +10,6 @@ def pi_or_sim():
         connection = settings.connection_string
         baud = settings.baud_rate
         drone = Drone(connection, baud)
-
     else:
         connection = "tcp:127.0.0.1:5763"
         drone = Drone(connection)
@@ -39,10 +38,14 @@ if __name__ == "__main__":
             gesture = video.pi_video.finger_counter()
 
             if gesture in missions:
+                
                 try: # Try/Except block here catches bad mission calls, prints an error and keeps looking for gestures
                     missions[gesture]()
+                    drone.send_coords_ned(0,0,-1.5) # Drone returns to 1.5m above launch for next command
+
                 except Exception as e:
                     print(f"Missiong for gesture {gesture} failed: {e}")
+
             elif gesture == 10:
                 break
             else:

@@ -2,10 +2,6 @@ import cv2 as cv
 import mediapipe as mp
 import time
 
-
-''' HEADLESS FOR DRONE/PI'''
-
-
 # This is a guarded import. PiCamera2 only exists on the Pi, so this
 # will stop the program crashing when run on desktop with webcam
 try:
@@ -13,6 +9,10 @@ try:
     has_pi_camera = True
 except ImportError:
     has_pi_camera = False
+
+
+''' HEADLESS FOR DRONE/PI '''
+
 
 camera_size = (640, 480)
 
