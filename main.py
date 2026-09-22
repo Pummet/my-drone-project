@@ -1,5 +1,5 @@
 from drone_files.drone import Drone
-import video.video_functions
+import video.pi_video
 
 import settings, sys
 
@@ -36,7 +36,7 @@ if __name__ == "__main__":
 
     try: # Due to running on the Pi, I'll be cancelling the execution with CTRL C
         while True:
-            gesture = video.video_functions.finger_counter()
+            gesture = video.pi_video.finger_counter()
 
             if gesture in missions:
                 try: # Try/Except block here catches bad mission calls, prints an error and keeps looking for gestures
@@ -52,7 +52,7 @@ if __name__ == "__main__":
         print("Interrupted by user")
         
     finally: # This always runs before the program closes
-        video.video_functions.release_camera()
+        video.pi_video.release_camera()
         drone.drone_disarm()
         drone.close()
         print("Drone disarming and disconnecting...")

@@ -25,7 +25,9 @@ else:
     cap.set(3, camera_size[0]) # 3 = width
     cap.set(4, camera_size[1]) # 4 = height
 
-mp_hands = mp.solutions.hands # this is the whole Hands module, think of a toolbox, from that I use the tool .Hands
+
+# this is the whole Hands module, think of a toolbox, from that I use the tool .Hands
+mp_hands = mp.solutions.hands
 
 # Was in a WITH block before, but this rebuilds the module every call
 # Better outside of the function where it can be built once, but I must manually close it
@@ -85,7 +87,7 @@ def frame_capture_success():
         release_camera()
         return
 
-    # Flipping frame
+    # Flipping frame to make it more intuitive
     frame = cv.flip(frame, 1)
     # OCV gives BGR, convert to RGB for MediaPipe
     rgb = cv.cvtColor(frame, cv.COLOR_BGR2RGB)

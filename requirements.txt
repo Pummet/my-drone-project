@@ -9,3 +9,9 @@ empy==3.3.4
 MAVProxy==1.8.74
 future==1.0.0
 matplotlib==3.11.1
+
+# Raspberry Pi camera support — only installs on the Pi (aarch64), skipped on the
+# development computer. Also requires the libcamera Python bindings built from
+# source on the Pi itself. I had to get Claude to help me with this, it was way
+# above my skillset!!
+picamera2==0.3.37; platform_machine == "aarch64"
