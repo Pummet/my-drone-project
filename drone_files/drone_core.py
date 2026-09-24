@@ -107,13 +107,36 @@ class Drone_Core():
 
     # Function that returns drone altitude in meters
     def get_altitude(self):
-        alt_msg = self.vehicle.recv_match(type="GLOBAL_POSITION_INT", blocking = True)
+        alt_msg = self.vehicle.recv_match(type="GLOBAL_POSITION_INT", blocking = True, timeout = 5)
 
         if alt_msg is None:
-            print("No altitude message recieved.")
+            print("No altitude message recieved. RTL")
             return None
         
         return alt_msg.relative_alt / 1000
+
+
+    # Function to check current altitude against a target altitude
+    def target_altitude_checker(self, target_altitude):
+        last_print = 0
+        
+        while True:
+            altitude = self.get_altitude()
+
+            if altitude is None:
+                self.rtl_disarm()
+
+            now = time.time()
+
+            if now - last_print >= 1:
+                print(f"Altitude: {altitude:.1f}m\nTarget: {target_altitude}")
+                last_print = now
+
+            altitude_tolerance = abs(altitude - target_altitude)
+
+            if altitude_tolerance <= 0.3:
+                print("Target altitude reacher.")
+                return True
 
 
     # Function to get battery voltage
@@ -121,7 +144,7 @@ class Drone_Core():
         batt_msg = self.vehicle.recv_match(type = "BATTERY_STATUS", blocking = True, timeout = 2)
 
         if batt_msg is None:
-            return None
+            return
         
         return sum(batt_msg.voltages[:self.motors]) # My drone uses a 4 cell lipo (4S) 
 

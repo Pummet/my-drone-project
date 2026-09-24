@@ -1,6 +1,6 @@
 import cv2 as cv
 import mediapipe as mp
-import time
+import time, sys
 
 
 ''' FOR TESTING ON COMPUTER WITH WEBCAM - FULL GUI 
@@ -11,7 +11,9 @@ mp_hands = mp.solutions.hands # this is the whole Hands module, think of a toolb
 mp_draw = mp.solutions.drawing_utils # for drawing the connections
 
 
-cap = cv.VideoCapture(0) # Camera index
+# program was taking 15 seconds to load on desktop, due to something called MSMF on Windows.
+# forum posts complaining about this, solution below, use DirectShow
+cap = cv.VideoCapture(0, cv.CAP_DSHOW if sys.platform == "win32" else cv.CAP_ANY) # Camera index
 
 
 # Resolution
@@ -127,7 +129,7 @@ def main():
                     cv.putText(
                         frame, 
                         f"{fingers_up} | {hand_orientation.upper()} | {which_hand.upper()}",
-                        (720, 30),
+                        (h, 30),
                         cv.FONT_HERSHEY_SIMPLEX,
                         1,
                         (255, 255, 255),

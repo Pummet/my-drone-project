@@ -12,7 +12,7 @@ class Drone_Commands():
         # Flight modes and numbers are stored in a dictionary
         if mode not in self.vehicle.mode_mapping():
             print(f"Unknown mode: {mode}")
-            return
+            return False
 
         mode_id = self.vehicle.mode_mapping()[mode]
 
@@ -21,17 +21,30 @@ class Drone_Commands():
             self.vehicle.target_component,
             mavutil.mavlink.MAV_CMD_DO_SET_MODE,
             0, # 0 means send once, can spam here but mostly not needed
-            mavutil.mavlink.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED, # enter customer ArduPilot modes in next field
+            mavutil.mavlink.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED, # enter custom ArduPilot modes in next field
             mode_id,
             0, 0, 0, 0, 0 # not used
         )
 
-        ack = self.vehicle.recv_match(type = "COMMAND_ACK", blocking = True, timeout = 5)
+        # command acks stack in a queue FIFO style, need to cycle through them for correct ack
+        while True:
+            # grab the oldest ack in queue 
+            ack = self.vehicle.recv_match(type = "COMMAND_ACK", blocking = True, timeout = 5)
 
-        if ack is None or ack.result != mavutil.mavlink.MAV_RESULT_ACCEPTED:
-            print(f"Mode change to {mode} was not accepted")
-        else:
-            print(f"Flight mode changed to {mode}")
+            # ack is None if no ack is received within 5 second timeout
+            if ack is None:
+                print(f"Timeout waiting for COMMAND_ACK for mode change to {mode}.")
+                return False
+
+            # check ack is the one I want
+            if ack.command == mavutil.mavlink.MAV_CMD_DO_SET_MODE:
+                # check results of ack
+                if ack.result == mavutil.mavlink.MAV_RESULT_ACCEPTED:
+                    print(f"Flight mode changed to {mode}.")
+                    return True
+                else:
+                    print(f"Mode change to {mode} was not accepted (Result: {ack.result}).")
+                    return False
 
 
     def drone_takeoff(self, target_altitude):
@@ -39,35 +52,33 @@ class Drone_Commands():
             self.vehicle.target_system, # which drone to send it to, important for swarms
             self.vehicle.target_component, # which component on the drone, usually autopilot
             mavutil.mavlink.MAV_CMD_NAV_TAKEOFF, # MAVLink command ID
-            0, 0, 0, 0, 0, 0, 0, # First 0 means send once, next 6 not used for takeoff
+            0, # send command once
+            0, 0, 0, 0, 0, 0, # parameters not used for takeoff
             target_altitude
         )
 
-        ack = self.vehicle.recv_match(type = "COMMAND_ACK", blocking = True, timeout = 5)
-
-        if ack is None or ack.result != mavutil.mavlink.MAV_RESULT_ACCEPTED:
-            print("Drone launch command not accepted.")
-            return
-
-        print("Takeoff started.")
-
-        last_print = 0
-
         while True:
-            altitude = self.get_altitude()
-            now = time.time()
+            # see notes in previous function for this loop
+            ack = self.vehicle.recv_match(type = "COMMAND_ACK", blocking = True, timeout = 5)
 
-            if now - last_print >= 1:
-                print(f"Altitude: {altitude:.1f}m")
-                last_print = now
+            if ack is None:
+                print(f"Timeout waiting for COMMAND_ACK for takeoff. Aborted.")
+                return False
 
-            if altitude >= target_altitude * 0.95:
-                print("Target altitude reached.")
-                break
+            if ack.command == mavutil.mavlink.MAV_CMD_NAV_TAKEOFF:
+                if ack.result == mavutil.mavlink.MAV_RESULT_ACCEPTED:
+                    print(f"Takeoff started.")
+                    break
+                else:
+                    print(f"Takeoff command was not accepted (Result: {ack.result})")
+                    return False    
+
+        self.target_altitude_checker(target_altitude)
 
 
     # Function to move the drone to specific GPS coordinates
     def send_coords_gps(self, lat, lon, alt):
+
         self.change_flight_mode("guided")
 
         if not self.armed():
@@ -110,7 +121,7 @@ class Drone_Commands():
 
 
     # Function to send yaw controls
-    def send_yaw(self, yaw, dir = 0):
+    def send_yaw_command(self, yaw, dir = 0):
         self.vehicle.mav.command_long_send(
             self.vehicle.target_system,
             self.vehicle.target_component,
@@ -125,7 +136,7 @@ class Drone_Commands():
 
 
     # Function to send velocity commands
-    def send_velocity(self, vel_x, vel_y, vel_z):
+    def send_velocity_command(self, vel_x, vel_y, vel_z):
         self.vehicle.mav.set_position_target_local_ned_send(
             0, # time boot ms, not used
             self.vehicle.target_system,

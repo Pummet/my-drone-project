@@ -21,3 +21,6 @@ target = (1, 0, 10)
 print(start == target)
 
 print(-180 % 360)
+
+
+print("HELP\n" * 5)

@@ -6,39 +6,6 @@ import time, math
 
 
 class Drone_Patterns():
-    def send_and_monitor_position_ned(self, coords, timeout = None, 
-                                      yaw = None, reps = 1, 
-                                      position_tolerance = 0.2):
-
-        yaw_change = yaw
-
-        for _ in range(reps):
-            for i, (tar_x, tar_y, tar_z) in enumerate(coords):
-
-                self.send_coords_ned(tar_x, tar_y, tar_z)
-
-                if yaw_change is not None:
-                    self.send_yaw(yaw_change)
-                    yaw_change += yaw
-
-                start_time = time.time()
-
-                while True:
-                    if timeout is not None:
-                        if time.time() - start_time > timeout:
-                            break
-
-                    curr_pos = self.get_position_ned()
-
-                    # curr_pos - target = 0 if positions match
-                    # 0.2m tolerance
-                    if abs(curr_pos[0] - tar_x) <= position_tolerance and abs(curr_pos[1] - tar_y) <= position_tolerance and abs(curr_pos[2] - tar_z) <= position_tolerance:
-                        print(f"point {i + 1} reached")
-                        break
-
-                    time.sleep(0.1) # Relax cpu spam
-
-
     # Jittery, drones starts and stops at every point....
     def fly_circle_terrible(self, radius = 10):
         start_x, start_y, start_z = self.get_position_ned()
@@ -181,6 +148,39 @@ class Drone_Patterns():
 
         self.send_and_monitor_position_ned(full_coords, yaw = 90, reps = 5)
 
+
+    def send_and_monitor_position_ned(self, coords, timeout = None, 
+                                      yaw = None, reps = 1, 
+                                      position_tolerance = 0.2):
+
+        yaw_change = yaw
+
+        for _ in range(reps):
+            for i, (tar_x, tar_y, tar_z) in enumerate(coords):
+
+                self.send_coords_ned(tar_x, tar_y, tar_z)
+
+                if yaw_change is not None:
+                    self.send_yaw(yaw_change)
+                    yaw_change += yaw
+
+                start_time = time.time()
+
+                while True:
+                    if timeout is not None:
+                        if time.time() - start_time > timeout:
+                            break
+
+                    curr_pos = self.get_position_ned()
+
+                    # curr_pos - target = 0 if positions match
+                    # 0.2m tolerance
+                    if abs(curr_pos[0] - tar_x) <= position_tolerance and abs(curr_pos[1] - tar_y) <= position_tolerance and abs(curr_pos[2] - tar_z) <= position_tolerance:
+                        print(f"point {i + 1} reached")
+                        break
+
+                    time.sleep(0.1) # Relax cpu spam
+                    
 
     def fly_spiral_up(self):
         pass

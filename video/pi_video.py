@@ -1,3 +1,4 @@
+import sys
 import cv2 as cv
 import mediapipe as mp
 import time
@@ -21,7 +22,8 @@ if has_pi_camera:
     cap.configure(cap.create_preview_configuration(main = {"size": camera_size, "format": "RGB888"}))
     cap.start()
 else:
-    cap = cv.VideoCapture(0)   # Camera index
+    # DirectShow opens way faster than the default MSMF backend on Windows
+    cap = cv.VideoCapture(0, cv.CAP_DSHOW if sys.platform == "win32" else cv.CAP_ANY) # Camera index
     cap.set(3, camera_size[0]) # 3 = width
     cap.set(4, camera_size[1]) # 4 = height
 
