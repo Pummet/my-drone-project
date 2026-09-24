@@ -29,6 +29,50 @@ class Drone_Patterns():
             self.send_and_monitor_position_ned(coords)
 
 
+    # much better, uses movement vectors
+    def fly_circle(self):
+        print("Beginning circle pattern...")
+        start_time = time.time()
+        duration = 60
+        angle_radian = 0.0
+        radius = 3
+        meters_sec = self.calculate_meters_sec(radius)
+
+        while time.time() - start_time <= duration:
+            angle_radian = self.circle_steps(radius, angle_radian, meters_sec)
+            time.sleep(0.1)
+
+
+    # Function for moving in a figure eight. (2 circles, cheat!)
+    def fly_figure_eight(self, radius = 3, duration = 60):
+        meters_sec = self.calculate_meters_sec(radius)
+
+        start_time = time.time()
+        angle_radian = 0.0
+        mirror = False
+
+        # Same angle_radian is being passed back and forth, whilst spamming vector commands at 0.1 secs
+        # Tracking previous angle to catch the resets in move_circle()
+        # when this happens, the drone has completed a full circle and switches to a mirrored circle
+        while time.time() - start_time <= duration:
+            prev_angle = angle_radian
+
+            if not mirror:
+                angle_radian = self.circle_steps(radius, angle_radian, meters_sec)
+
+                if angle_radian < prev_angle:
+                        angle_radian = 2 * math.pi # South circle decrements radian
+                        mirror = True
+            else:
+                angle_radian = self.circle_steps(radius, angle_radian, meters_sec, mirror, clockwise = False)
+
+                if angle_radian > prev_angle:
+                        angle_radian = 0 # north circle increases radian
+                        mirror = False
+
+            time.sleep(0.1) # chill CPU spam
+
+
     # Smooth circular movement using vectors
     def circle_steps(self, radius, angle_radian, meters_sec, mirror = False, clockwise = True):
         # Drone faces the centre of the circle as it orbits
@@ -41,8 +85,8 @@ class Drone_Patterns():
             target_yaw = (angle_radian - math.pi) * (180 / math.pi)
 
         vel_x, vel_y, vel_z = self.calculate_velocity_circle(meters_sec, angle_radian)
-        self.send_velocity(vel_x, vel_y, vel_z)
-        self.send_yaw(target_yaw)
+        self.send_velocity_command(vel_x, vel_y, vel_z)
+        self.send_yaw_command(target_yaw)
 
         angular_velocity = meters_sec / radius
 
@@ -75,19 +119,6 @@ class Drone_Patterns():
         return vel_x, vel_y, vel_z
 
 
-    def fly_circle(self):
-        print("Beginning circle pattern...")
-        start_time = time.time()
-        duration = 60
-        angle_radian = 0.0
-        radius = 3
-        meters_sec = self.calculate_meters_sec(radius)
-
-        while time.time() - start_time <= duration:
-            angle_radian = self.circle_steps(radius, angle_radian, meters_sec)
-            time.sleep(0.1)
-
-
     def calculate_meters_sec(self, radius):
         # 5m/s over 15m radius circle worked well in sims, good reference point
         # Gives me a good speed per 1m, then multiply by radius
@@ -98,36 +129,6 @@ class Drone_Patterns():
             meters_sec = 10
 
         return meters_sec
-
-
-    # Function for moving in a figure eight. (2 circles, cheat!)
-    def fly_figure_eight(self, radius = 3, duration = 60):
-        meters_sec = self.calculate_meters_sec(radius)
-
-        start_time = time.time()
-        angle_radian = 0.0
-        mirror = False
-
-        # Same angle_radian is being passed back and forth, whilst spamming vector commands at 0.1 secs
-        # Tracking previous angle to catch the resets in move_circle()
-        # when this happens, the drone has completed a full circle and switches to a mirrored circle
-        while time.time() - start_time <= duration:
-            prev_angle = angle_radian
-
-            if not mirror:
-                angle_radian = self.circle_steps(radius, angle_radian, meters_sec)
-
-                if angle_radian < prev_angle:
-                        angle_radian = 2 * math.pi # South circle decrements radian
-                        mirror = True
-            else:
-                angle_radian = self.circle_steps(radius, angle_radian, meters_sec, mirror, clockwise = False)
-
-                if angle_radian > prev_angle:
-                        angle_radian = 0 # north circle increases radian
-                        mirror = False
-
-            time.sleep(0.1)
 
 
     # Function to move the drone in a square.
@@ -161,7 +162,7 @@ class Drone_Patterns():
                 self.send_coords_ned(tar_x, tar_y, tar_z)
 
                 if yaw_change is not None:
-                    self.send_yaw(yaw_change)
+                    self.send_yaw_command(yaw_change)
                     yaw_change += yaw
 
                 start_time = time.time()

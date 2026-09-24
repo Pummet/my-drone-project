@@ -1,5 +1,4 @@
 from pymavlink import mavutil
-import time
 
 
 ''' THIS IS DIRECT MAVLINK COMMANDS, ONE ACTION PER MESSAGE'''
@@ -78,7 +77,6 @@ class Drone_Commands():
 
     # Function to move the drone to specific GPS coordinates
     def send_coords_gps(self, lat, lon, alt):
-
         self.change_flight_mode("guided")
 
         if not self.armed():
