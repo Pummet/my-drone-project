@@ -75,11 +75,11 @@ Update the `tcp` connection string and mission file `path` in `drone.py` to matc
 
 ## Roadmap
 
-- [ ] Physical build: Holybro X650 frame, Pixhawk 6C, 6S power system
-- [ ] Raspberry Pi 5 companion computer (headless Ubuntu Server) bridging to the Pixhawk over UART
-- [ ] Battery failsafe handling via `SYS_STATUS.voltage_battery`
-- [ ] Real-world flight testing (CAA Flyer ID / Operator ID obtained)
-- [ ] Onboard video feed + image recognition for hand-signal control
+- [✓] Physical build: Holybro X650 frame, Pixhawk 6C, 6S power system
+- [✓] Raspberry Pi 5 companion computer (headless Ubuntu Server) bridging to the Pixhawk over UART
+- [✓] Battery failsafe handling via `SYS_STATUS.voltage_battery`
+- [✓] Real-world flight testing (CAA Flyer ID / Operator ID obtained)
+- [✓] Onboard video feed + image recognition for hand-signal control
 - [ ] Migration to Jetson Orin Nano + ROS2/MAVROS for onboard compute
 - [ ] Drone swarm — Jetson Orin Nano mothership directing multiple vehicles
 
