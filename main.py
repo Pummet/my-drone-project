@@ -26,12 +26,11 @@ if __name__ == "__main__":
         2: drone.fly_square,
         3: drone.fly_circle,
         4: drone.fly_figure_eight,
-        5: "",
-        6: "",
-        7: "",
-        8: "",
         9: drone.land_disarm,
         }
+
+
+    ######## !!!!! MESSY AND NEEDS WORK !!!!! ########
 
     try: # Due to running on the Pi, I'll be cancelling the execution with CTRL C
         while True:
@@ -40,11 +39,24 @@ if __name__ == "__main__":
             if gesture in missions:
                 
                 try: # Try/Except block here catches bad mission calls, prints an error and keeps looking for gestures
-                    missions[gesture]()
-                    drone.send_coords_ned(0,0,-1.5) # Drone returns to 1.5m above launch for next command
+                    if gesture == 1: # launch command
+                        missions[gesture]()
+                    else: # check that drone is armed and airborne
+                        altitude = drone.get_altitude()
+                        if not (drone.armed() and altitude is not None and altitude > 0.5):
+                            print("Gesture failed. Drone not armed or airborne.")
+                            continue # skip the mission and the return to 1.5m
+
+                        # goes up to 10 meters and executes
+                        drone.send_coords_ned(0, 0, -10)
+                        drone.target_altitude_checker(10)
+                        missions[gesture]()
+
+                    if gesture != 9: # drone has landed on mission 9
+                        drone.send_coords_ned(0,0,-1.5) # Drone returns to 1.5m above launch for next command
 
                 except Exception as e:
-                    print(f"Missiong for gesture {gesture} failed: {e}")
+                    print(f"Mission for gesture {gesture} failed: {e}")
 
             elif gesture == 10:
                 break
@@ -56,6 +68,7 @@ if __name__ == "__main__":
         
     finally: # This always runs before the program closes
         video.pi_video.release_camera()
+        drone.change_flight_mode("land")
         drone.drone_disarm()
         drone.close()
-        print("Drone disarming and disconnecting...")
+        print("Drone disconnecting...")

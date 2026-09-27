@@ -20,7 +20,7 @@ class Drone_Core():
             self.vehicle.target_system,
             self.vehicle.target_component,
             mavutil.mavlink.MAV_DATA_STREAM_ALL,
-            10, # 10 Hz
+            6, # 6 Hz
             1   # start streaming
         )
 
@@ -67,47 +67,70 @@ class Drone_Core():
 
     # Returns True if armed, False if not, and None if no message
     def armed(self):
-        heartbeat_msg = self.vehicle.recv_match(type = "HEARTBEAT", blocking = True, timeout = 2)
+        heartbeat_msg = self.get_latest_message("HEARTBEAT")
 
-        if heartbeat_msg is None:
-            print("No heartbeat message received.")
-            return None
-
-        elif heartbeat_msg.get_srcSystem() == 1 and heartbeat_msg.get_srcComponent() == 1:
-            # base_mode is a bitmask, 128 = armed. Many commands in the same byte, bit 7 is 
+        if heartbeat_msg.get_srcSystem() == 1 and heartbeat_msg.get_srcComponent() == 1:
+            # base_mode is a bitmask, 128 = armed. Many commands in the same byte, bit 7 is
             # specifically armed/disarmed. Using bitwise AND to check if bit 7 is set.
             return bool(heartbeat_msg.base_mode & 128)
+        else:
+            print("No heartbeat message received.")
+            return None
         
+
+    # struggling with the message buffer, too many messages building up and functions
+    # not reading the most recent one. Found this solution, which reads everything in the buffer.
+    # vehicle.messages holds the most recently read message of each message type, therefore it will
+    # hold the most recent and i can query it directly (its a dictionary)
+    # need to be careful as this drains ACKs as well.
+    def drain_messages(self):
+        while self.vehicle.recv_msg() is not None:
+            pass
+
+
+    # function that gets the most recent message of a specified type
+    def get_latest_message(self, msg_type, max_age = 1.0, timeout = 5):
+        self.drain_messages()
+        msg = self.vehicle.messages.get(msg_type)
+
+        # _timestamp is the device time that pymavlink recieved the message
+        if msg is not None and time.time() - msg._timestamp < max_age:
+            return msg
+
+        # if nothing, wait 5 seconds for a new one
+        return self.vehicle.recv_match(type = msg_type, blocking = True, timeout = timeout)
+
+
 
     # Function to get local NED coordinates from drone, home is (0,0,0)
     def get_position_ned(self):
         while True:
-            current_pos = self.vehicle.recv_match(type = "LOCAL_POSITION_NED", blocking = True, timeout = 2)
+            ned_msg = self.get_latest_message("LOCAL_POSITION_NED")
 
-            if current_pos is None:
+            if ned_msg is None:
                 print("No position message received.")
                 continue
 
-            return current_pos.x, current_pos.y, current_pos.z  
+            return ned_msg.x, ned_msg.y, ned_msg.z  
 
 
     def get_position_gps(self):
-        pos_msg = self.vehicle.recv_match(type = "GLOBAL_POSITION_INT", blocking = True)
+        gps_msg = self.get_latest_message("GLOBAL_POSITION_INT")
 
-        if pos_msg is None:
+        if gps_msg is None:
             print("No position message received.")
             return None, None, None
 
-        lat = pos_msg.lat / 1e7
-        lon = pos_msg.lon / 1e7
-        alt = pos_msg.relative_alt / 1000
+        lat = gps_msg.lat / 1e7
+        lon = gps_msg.lon / 1e7
+        alt = gps_msg.relative_alt / 1000
 
         return lat, lon, alt   
 
 
     # Function that returns drone altitude in meters
     def get_altitude(self):
-        alt_msg = self.vehicle.recv_match(type="GLOBAL_POSITION_INT", blocking = True, timeout = 5)
+        alt_msg = self.get_latest_message("GLOBAL_POSITION_INT")
 
         if alt_msg is None:
             print("No altitude message recieved. RTL")
@@ -116,33 +139,9 @@ class Drone_Core():
         return alt_msg.relative_alt / 1000
 
 
-    # Function to check current altitude against a target altitude
-    def target_altitude_checker(self, target_altitude):
-        last_print = 0
-        
-        while True:
-            altitude = self.get_altitude()
-
-            if altitude is None:
-                self.rtl_disarm()
-
-            now = time.time()
-
-            if now - last_print >= 1:
-                print(f"Altitude: {altitude:.1f}m\nTarget: {target_altitude}")
-                last_print = now
-
-            altitude_tolerance = abs(altitude - target_altitude)
-
-            if altitude_tolerance <= 0.3:
-                print("Target altitude reached.")
-                return True
-            time.sleep(0.1) # relax the spam
-
-
     # Function to get battery voltage
     def get_battery_voltage(self):
-        batt_msg = self.vehicle.recv_match(type = "BATTERY_STATUS", blocking = True, timeout = 2)
+        batt_msg = self.get_latest_message("BATTERY_STATUS")
 
         if batt_msg is None:
             return

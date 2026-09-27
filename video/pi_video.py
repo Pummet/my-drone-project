@@ -137,8 +137,6 @@ def count_fingers(rgb):
                 if hand_landmarks.landmark[tip].y < hand_landmarks.landmark[tip - 2].y:
                     current_count += 1
 
-        print(f"Hand: {which_hand}, {hand_orientation}, fingers {current_count}")
-
     return current_count
 
     
@@ -152,7 +150,9 @@ def continuous_capture(current_count, last_count, streak_length):
     else:
         streak_length += 1
 
-    confirmed = streak_length >= 15000
+    confirmed = streak_length >= 15
+    
+    print(f"Finger count: {last_count}")
 
     return last_count, streak_length, confirmed
 

@@ -31,7 +31,7 @@ class Drone_Patterns():
 
     # much better, uses movement vectors
     def fly_circle(self):
-        print("Beginning circle pattern...")
+        print("Executing circle pattern...")
         start_time = time.time()
         duration = 60
         angle_radian = 0.0
@@ -45,6 +45,7 @@ class Drone_Patterns():
 
     # Function for moving in a figure eight. (2 circles, cheat!)
     def fly_figure_eight(self, radius = 3, duration = 60):
+        print("Executing figure-eight pattern...")
         meters_sec = self.calculate_meters_sec(radius)
 
         start_time = time.time()
@@ -134,6 +135,7 @@ class Drone_Patterns():
     # Function to move the drone in a square.
     # Relative to current position
     def fly_square(self, size = 5):
+        print("Executing square pattern...")
         start_pos = list(self.get_position_ned())
 
         moves = [(size, 0, 0),(0, size, 0),(-size, 0, 0),(0, -size, 0)]
@@ -156,8 +158,9 @@ class Drone_Patterns():
 
         yaw_change = yaw
 
+        # how many squares
         for _ in range(reps):
-            for i, (tar_x, tar_y, tar_z) in enumerate(coords):
+            for i, (tar_x, tar_y, tar_z) in enumerate(coords): # unpacking coords
 
                 self.send_coords_ned(tar_x, tar_y, tar_z)
 

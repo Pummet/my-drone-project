@@ -8,13 +8,15 @@ import time, settings
 class Drone_Wrappers():
 
     def guided_arm_takeoff(self, target_altitude = 1.5):
-        if self.change_flight_mode("guided"):
+        if not self.change_flight_mode("guided"):
             return False
         
         self.drone_arm()
         time.sleep(1)
+
+        takeoff = self.drone_takeoff(target_altitude)
         
-        if not self.drone_takeoff(target_altitude):
+        if takeoff == False:
             self.drone_disarm()
             return False
 

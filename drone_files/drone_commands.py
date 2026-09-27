@@ -1,4 +1,5 @@
 from pymavlink import mavutil
+import time
 
 
 ''' THIS IS DIRECT MAVLINK COMMANDS, ONE ACTION PER MESSAGE'''
@@ -35,7 +36,7 @@ class Drone_Commands():
                 print(f"Timeout waiting for COMMAND_ACK for mode change to {mode}.")
                 return False
 
-            # check ack is the one I want
+            # check ack is the one I want, otherwise loop again
             if ack.command == mavutil.mavlink.MAV_CMD_DO_SET_MODE:
                 # check results of ack
                 if ack.result == mavutil.mavlink.MAV_RESULT_ACCEPTED:
@@ -47,6 +48,10 @@ class Drone_Commands():
 
 
     def drone_takeoff(self, target_altitude):
+        # if drone is already in the air, ignore
+        if self.get_altitude() > 0.5:
+            return
+        
         self.vehicle.mav.command_long_send( # pymavlink function for sending action commands
             self.vehicle.target_system, # which drone to send it to, important for swarms
             self.vehicle.target_component, # which component on the drone, usually autopilot
@@ -116,6 +121,30 @@ class Drone_Commands():
             0,0,0, # XYZ Accel force
             0,0    # Yaw, Yaw Rate
         )
+
+
+    # Function to check current altitude against a target altitude
+    def target_altitude_checker(self, target_altitude):
+        last_print = 0
+        
+        while True:
+            altitude = self.get_altitude()
+
+            if altitude is None:
+                self.rtl_disarm()
+
+            now = time.time()
+
+            if now - last_print >= 1:
+                print(f"Altitude: {altitude:.1f}m")
+                last_print = now
+
+            altitude_tolerance = abs(altitude - target_altitude)
+
+            if altitude_tolerance <= 0.3:
+                print("Target altitude reached.")
+                return True
+            time.sleep(0.1) # relax the spam
 
 
     # Function to send yaw controls
