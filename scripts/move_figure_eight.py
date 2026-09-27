@@ -2,19 +2,15 @@
 MOVE THE DRONE IN A CIRCLE PATTERN
 '''
 
-import sys, os
-
-# This is to help import from working directory
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import main
 
+def run():
+    drone_1 = main.pi_or_sim()
+    drone_1.guided_arm_takeoff(10)
+    drone_1.fly_figure_eight()
+    drone_1.rtl_disarm()
 
-drone_1 = main.pi_or_sim()
 
-
-drone_1.guided_arm_takeoff(10)
-
-drone_1.fly_figure_eight()
-
-drone_1.rtl_disarm()
+if __name__ == "__main__":
+    run()

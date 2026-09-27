@@ -35,7 +35,7 @@ class Drone_Core():
             0 # stop streaming
         )
 
-        # hasattr check only triggers on Pi, not through TCP on SITL
+        # hasattr check only triggers on Pi, not through TCP on SITL(Desktop)
         if hasattr(self.vehicle, "port") and hasattr(self.vehicle.port, "flush"):
             try:
                 self.vehicle.port.flush()

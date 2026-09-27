@@ -10,12 +10,12 @@
 
 
 ############## Computer to Pi #################
-#   Toggle field:      sudo wifi-toggle.sh ap
+#   Toggle access point:      sudo wifi-toggle.sh ap
 #   Toggle home:       sudo wifi-toggle.sh home
 
 #   Home WiFi:         ssh pummet@drone-pi.local
 #   In the field AP:   ssh pummet@192.168.4.1
-
+ 
 
 #################### NOTES ####################
 # GIT PULL BEFORE STARTING

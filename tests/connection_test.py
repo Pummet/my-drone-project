@@ -2,20 +2,19 @@
 RETURNS HEARTBEAT IF CONNECTED
 '''
 
-import sys, os
-
-# This is to help import from working directory
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import main
 
+def run():
+    drone = main.pi_or_sim()
 
-drone = main.pi_or_sim()
+    if drone.wait_heartbeat(timeout = 5) is None:
+        print("No heartbeat recieved")
+    else:
+        print(f"Heartbeat received from system {drone.target_system}")
 
-if drone.wait_heartbeat(timeout = 5) is None:
-    print("No heartbeat recieved")
+    drone.close()
 
-else:
-    print(f"Heartbeat received from system {drone.target_system}")
 
-drone.close()
+if __name__ == "__main__":
+    run()

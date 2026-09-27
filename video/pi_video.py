@@ -18,14 +18,14 @@ except ImportError:
 camera_size = (640, 480)
 
 if has_pi_camera:
-    cap = Picamera2()
-    cap.configure(cap.create_preview_configuration(main = {"size": camera_size, "format": "RGB888"}))
-    cap.start()
+    cam = Picamera2()
+    cam.configure(cam.create_preview_configuration(main = {"size": camera_size, "format": "RGB888"}))
+    cam.start()
 else:
     # DirectShow opens way faster than the default MSMF backend on Windows
-    cap = cv.VideoCapture(0, cv.CAP_DSHOW if sys.platform == "win32" else cv.CAP_ANY) # Camera index
-    cap.set(3, camera_size[0]) # 3 = width
-    cap.set(4, camera_size[1]) # 4 = height
+    cam = cv.VideoCapture(0, cv.CAP_DSHOW if sys.platform == "win32" else cv.CAP_ANY) # Camera index
+    cam.set(3, camera_size[0]) # 3 = width
+    cam.set(4, camera_size[1]) # 4 = height
 
 
 # this is the whole Hands module, think of a toolbox, from that I use the tool .Hands
@@ -62,13 +62,13 @@ def finger_counter():
 def get_frame():
     if has_pi_camera:
         try:
-            frame = cap.capture_array()
+            frame = cam.capture_array()
             # returning bool and frame to match output for OpenCV, simplifies rest of code
             return frame is not None, frame
         except Exception:
             return False, None
     else:
-        return cap.read() # Returns bool and frame from camera
+        return cam.read() # Returns bool and frame from camera
 
 
 
@@ -170,15 +170,29 @@ def front_back_hand(which_hand, hand_landmarks):
             return "front"
         else:
             return "back"
-    
+
+
+def record_video(duration = 60):
+    if has_pi_camera:
+        video_config = cam.create_video_configuration()
+        cam.configure(video_config)
+
+        cam.start()
+        video_path = "/home/pummet/my-drone-project/video_recordings/video.mp4"
+        cam.start_recording(video_path)
+
+        time.sleep(duration)
+
+        cam.stop_recording()
+
 
 def release_camera():
     hands.close()
     if has_pi_camera:
-        cap.stop()
-        cap.close()
+        cam.stop()
+        cam.close()
     else:
-        cap.release()
+        cam.release()
 
 
 if __name__ == "__main__":

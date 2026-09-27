@@ -12,8 +12,8 @@ mp_draw = mp.solutions.drawing_utils # for drawing the connections
 
 
 # program was taking 15 seconds to load on desktop, due to something called MSMF on Windows.
-# forum posts complaining about this, solution below, use DirectShow
-cap = cv.VideoCapture(0, cv.CAP_DSHOW if sys.platform == "win32" else cv.CAP_ANY) # Camera index
+# forum posts complaining about this, solution below, use DirectShow if on windows, else use any camera
+cap = cv.VideoCapture(0, cv.CAP_DSHOW if sys.platform == "win32" else cv.CAP_ANY)
 
 
 # Resolution
