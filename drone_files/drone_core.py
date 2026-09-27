@@ -135,8 +135,9 @@ class Drone_Core():
             altitude_tolerance = abs(altitude - target_altitude)
 
             if altitude_tolerance <= 0.3:
-                print("Target altitude reacher.")
+                print("Target altitude reached.")
                 return True
+            time.sleep(0.1) # relax the spam
 
 
     # Function to get battery voltage
