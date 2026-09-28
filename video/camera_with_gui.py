@@ -13,12 +13,12 @@ mp_draw = mp.solutions.drawing_utils # for drawing the connections
 
 # program was taking 15 seconds to load on desktop, due to something called MSMF on Windows.
 # forum posts complaining about this, solution below, use DirectShow if on windows, else use any camera
-cap = cv.VideoCapture(0, cv.CAP_DSHOW if sys.platform == "win32" else cv.CAP_ANY)
+cam = cv.VideoCapture(0, cv.CAP_DSHOW if sys.platform == "win32" else cv.CAP_ANY)
 
 
 # Resolution
-cap.set(3, 1200) # 3 = width
-cap.set(4, 720)  # 4 = height
+cam.set(3, 1200) # 3 = width
+cam.set(4, 720)  # 4 = height
 
 
 def main():
@@ -30,12 +30,12 @@ def main():
     ) as hands:
         while True:
             attempt = 0
-            success, frame = cap.read() # returns bool and frame from camera
+            success, frame = cam.read() # returns bool and frame from camera
 
             # Loop to try again if first read fails, breaks when success = True
             while not success and attempt < 5:
                 time.sleep(0.1)
-                success, frame = cap.read()
+                success, frame = cam.read()
                 attempt += 1
 
             # 5 fails triggers this
@@ -65,7 +65,7 @@ def main():
                         mp_hands.HAND_CONNECTIONS
                         )
 
-                    # Draw labels
+                    # Draw labels (fingertips)
                     finger_tips = {
                         "Thumb": hand_landmarks.landmark[4],
                         "Index": hand_landmarks.landmark[8],
@@ -86,7 +86,7 @@ def main():
                             1                        # thickness
                             )
 
-                    # This is for Left or Right hand
+                    # This is for Left or Right hand - MediaPipe knows
                     which_hand = results.multi_handedness[hand].classification[0].label
 
                     hand_orientation = front_back_hand(which_hand, hand_landmarks)
@@ -95,7 +95,7 @@ def main():
                     for tip in range(4, 21, 4): # Just hitting fingertips (4, 8, 12, 16, 20)
                         if tip == 4:
                             # Trying to catch thumbs[4] here, tricky!
-                            # Thumb is extended if tip is left/right of thumb knuckle depending on hand/orientation
+                            # Thumb is extended if tip is left/right of thumb knuckle depending on hand and orientation
                             if which_hand == "Left":
                                 if hand_orientation == "front":
                                     if hand_landmarks.landmark[tip].x > hand_landmarks.landmark[tip - 1].x:
@@ -143,7 +143,7 @@ def main():
             if cv.waitKey(1) == ord("q"):
                 break
 
-    cap.release()
+    cam.release()
     cv.destroyAllWindows()
 
 
