@@ -33,7 +33,7 @@
 
 
 connection_string = '/dev/ttyAMA0'
-baud_rate = 57600
+baud_rate = 921600
 
 # This will need to change, path is different on the Pi
 path = "/home/pummet/Documents/Projects/my-drone-project/waypoints/daryl_coop.txt"
