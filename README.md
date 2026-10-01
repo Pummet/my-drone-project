@@ -22,11 +22,18 @@ The long-term goal is a drone swarm, with a mothership on an Nvidia Jetson Orin 
 ## Hardware
 
 - **Frame:** Holybro X500
+- **Motors:** 4 x Holybro 2216 KV920
+- **ESCs:** BLHeli S 20A, with XT30 power connectors
+- **Props:** 4 x 10" propellors
 - **Flight controller:** Pixhawk 6C running ArduCopter
 - **Power:** 4S LiPo
 - **Companion computer:** Raspberry Pi 5 (headless Ubuntu Server), connected to the flight controller over UART (TELEM3, `/dev/ttyAMA0`, 921600 baud)
+- **5A Step Down Lead:** Safely provides power to the Raspberry Pi
 - **Camera:** Raspberry Pi camera, read with `picamera2`
+- **M10 GPS Receiver:** For Loitering and position tracking
 - **Telemetry radio:** SiK radio link to the ground, used for live tracking in the field
+- **ELRS Receiver:** For radio control via a RadioMaster Pocket
+- 
 
 ## Software stack
 
@@ -113,6 +120,8 @@ In simulation, `main.py` connects to `tcp:127.0.0.1:5763` and uses the desktop w
 Common first-run dependency gaps (fixed with `pip install --break-system-packages`): `empy==3.3.4`, `MAVProxy`, `future`, `matplotlib`, `opencv-python`.
 
 ### On the drone (Raspberry Pi)
+
+SSH into the Raspberry Pi first. (git pull if needed)
 
 ```bash
 python3 main.py
