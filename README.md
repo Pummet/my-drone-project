@@ -1,46 +1,91 @@
-# Autonomous Drone Control System
+# Semi-Autonomous Drone System
 
-First year Data Science & AI student messing around with drones as a personal project — don't expect anything polished, just documenting the journey as I go! First time using Linux, connecting programs, and using GitHub!
+First-year Data Science & AI student building a drone as a personal project. Don't expect anything polished, I'm documenting the journey as I go. This was my first time using Linux, connecting programs together, and using GitHub.
 
-An autonomous flight control system built around **ArduPilot** and **pymavlink**, developed and tested end-to-end in **Gazebo Harmonic / SITL simulation**, with the goal of deploying to a real **Holybro X650** quadcopter running a **Raspberry Pi 5** companion computer.
+A flight control system built around **ArduPilot** and **pymavlink**, developed in **Gazebo Harmonic / SITL** simulation and now flown on a real **Holybro X500** quadcopter with a **Raspberry Pi 5** companion computer. The drone can be commanded by **hand signals**: a camera counts the fingers I hold up and each number triggers a different mission.
 
-The core of the project is a custom Python `Drone` class that wraps pymavlink to handle mode switching, arming, takeoff, mission upload, and autonomous flight execution.
+The core of the project is a custom Python `Drone` class that wraps pymavlink to handle mode switching, arming, takeoff, waypoint missions, and flight patterns.
 
-In the future, I want to add a video feed with image recognition so the drone can be controlled via hand signals. The ultimate goal is a drone swarm, with a mothership running on an Nvidia Jetson Orin Nano directing the rest of the fleet.
+The long-term goal is a drone swarm, with a mothership on an Nvidia Jetson Orin Nano directing the rest of the fleet.
 
 ## Features
 
-- **Mode control** — GUIDED, AUTO, RTL, STABILIZE, LAND
-- **Arming** — with blocking wait for confirmed motor arm
-- **Guided takeoff** — climbs to a target altitude with live telemetry monitoring
-- **Waypoint loading** — parses QGC WPL format mission files
-- **Mission upload** — sends waypoint count + mission items over MAVLink, switches to AUTO to execute
-- **Live telemetry streaming** — requests all data streams at 10Hz on connection
+- **Gesture control**: MediaPipe hand tracking counts fingers (1-10, using both hands). A gesture must be held for 15 frames in a row before it triggers
+- **Flight patterns**: square, circle and figure-eight, flown using velocity vectors for smooth movement
+- **Mode control**: switches ArduPilot flight modes by name and waits for the acknowledgement
+- **Arming and takeoff**: blocks until the motors are armed and the target altitude is reached
+- **Waypoint missions**: loads QGC WPL files, uploads them over MAVLink and runs them in AUTO mode
+- **Position, velocity and yaw commands**: local NED, GPS and velocity targets
+- **Failsafe sequences**: RTL falls back to LAND, LAND retries 3 times, and there is a low-battery RTL check
+- **Same code in sim and on the drone**: `main.py` picks the right connection depending on how it is launched
 
-## Stack
+## Hardware
 
-- **ArduPilot** (SITL) — flight controller firmware, running in simulation
-- **Gazebo Harmonic** — 3D physics simulation, using the `ardupilot_gazebo` plugin and the Iris quadcopter model
-- **pymavlink** — Python MAVLink implementation used to talk to the flight controller directly (chosen over DroneKit, which is deprecated and no longer maintained)
-- **MAVProxy** — ground control station used alongside Gazebo for live console/map monitoring during development
-- **Ubuntu 24.04** — development environment, dual-booted alongside Windows
+- **Frame:** Holybro X500
+- **Flight controller:** Pixhawk 6C running ArduCopter
+- **Power:** 4S LiPo
+- **Companion computer:** Raspberry Pi 5 (headless Ubuntu Server), connected to the flight controller over UART (TELEM3, `/dev/ttyAMA0`, 921600 baud)
+- **Camera:** Raspberry Pi camera, read with `picamera2`
+- **Telemetry radio:** SiK radio link to the ground, used for live tracking in the field
+
+## Software stack
+
+| Where | What |
+| --- | --- |
+| **ArduPilot** | Flight controller firmware (SITL in simulation, on the Pixhawk in real life) |
+| **pymavlink** | Talks to the flight controller directly. |
+| **Gazebo Harmonic** | 3D physics simulation, using the `ardupilot_gazebo` plugin and the Iris quadcopter model |
+| **MediaPipe** | Hand landmark detection for gesture control |
+| **OpenCV** | Camera input and image conversion. On the desktop it reads a webcam, with a full GUI test tool |
+| **picamera2** | Camera input on the Raspberry Pi (only installs on the Pi) |
+| **Mission Planner** | Live tracking in the field over the SiK telemetry radio (Windows) |
+| **QGroundControl** | Ground control for simulation, used alongside SITL and Gazebo (Ubuntu) |
+| **MAVProxy** | Launched by `sim_vehicle.py` alongside SITL |
+
+I develop across three machines:
+
+- **Windows:** Mission Planner for tracking real flights over the SiK radio, and webcam gesture testing with OpenCV
+- **Ubuntu 24.04 (dual boot):** Gazebo, SITL and QGroundControl for simulation
+- **Raspberry Pi 5:** the real flights
 
 ## Architecture
 
-`drone.py` defines a `Drone` class that wraps a `pymavlink.mavlink_connection`. Each method (`mode_guided`, `drone_arm`, `drone_takeoff`, `upload_mission`, etc.) sends the relevant MAVLink message(s) and, where needed, blocks until a confirming message is received — for example, `drone_takeoff` polls `GLOBAL_POSITION_INT` until the target altitude is reached before returning control to the calling script.
+`Drone` is built from several small classes (mixins), each in its own file, because one giant class got unwieldy. `Drone` inherits from all of them, so a script only ever needs one object.
 
-Waypoint files are expected in **QGC WPL 110** format (the standard Mission Planner / QGroundControl export format), parsed into `[command, lat, lon, alt]` tuples before being uploaded over MAVLink as `MISSION_ITEM_INT` messages.
+`Drone_Core` wraps a `pymavlink.mavlink_connection`, waits for a heartbeat, and requests all data streams at 6 Hz. Reading telemetry works by draining the message buffer and using the latest message of each type, so functions never act on stale data.
 
-## Getting Started (Simulation)
+Waypoint files are in the standard **QGC WPL 110** format (exported by QGroundControl and Mission Planner). They are parsed into `[command, lat, lon, alt]` lists and uploaded as `MISSION_ITEM_INT` messages.
 
-### Prerequisites
+### Gesture control
 
-- Ubuntu 24.04 (or WSL2 equivalent)
-- Gazebo Harmonic (via OSRF apt repo — the snap version won't have the required `-dev` packages)
+`main.py` loops forever, waiting for a confirmed gesture:
+
+| Fingers | Action |
+| --- | --- |
+| 1 | Arm and take off to 1.5 m |
+| 2 | Fly a square |
+| 3 | Fly a circle |
+| 4 | Fly a figure-eight |
+| 9 | Land and disarm |
+| 10 | Exit the program (lands and disarms) |
+
+Gestures 2-4 only run if the drone is armed and above 0.5 m. It climbs to 10 m, flies the pattern, then drops back to 1.5 m ready for the next command. Pressing CTRL+C also lands and disarms.
+
+### Flight patterns
+
+- **Circle:** velocity vectors sent every 0.1 s, with the drone facing the centre. Speed scales with radius (based on 5 m/s at a 15 m radius, capped at 10 m/s). My first version (`fly_circle_terrible`) stopped at every point and was very jittery, so it is kept next to the good one for comparison
+- **Figure-eight:** two mirrored circles
+- **Square:** position targets in local NED, with a 90 degree yaw at each corner
+
+## Getting started
+
+### Simulation (Ubuntu 24.04)
+
+Prerequisites:
+
+- Gazebo Harmonic from the OSRF apt repo (the snap version doesn't have the required `-dev` packages)
 - ArduPilot SITL built from source
 - The `ardupilot_gazebo` plugin built and configured (`GZ_SIM_SYSTEM_PLUGIN_PATH`, `GZ_SIM_RESOURCE_PATH`)
-
-### Running the simulation
 
 **1. Start Gazebo** with the Iris quadcopter on the runway world:
 
@@ -48,41 +93,54 @@ Waypoint files are expected in **QGC WPL 110** format (the standard Mission Plan
 gz sim -v4 -r iris_runway.sdf
 ```
 
-**2. In a separate terminal, launch ArduPilot SITL + MAVProxy:**
+**2. In a second terminal, start ArduPilot SITL:**
 
 ```bash
-sim_vehicle.py -v ArduCopter -f gazebo-iris --model JSON --map --console
+sim_vehicle.py -v ArduCopter -f gazebo-iris --model JSON --console
 ```
 
-This launches ArduCopter SITL and MAVProxy (with console + map), and connects to the running Gazebo instance from step 1.
+**3. Open QGroundControl** (download the AppImage, `chmod +x` it and run it). It connects to SITL on UDP 14550 and shows the simulated drone alongside Gazebo.
 
-**Alternative ground control station:** MAVProxy's console/map are used for lightweight monitoring above, but [QGroundControl](http://qgroundcontrol.com/) is a more full-featured native Linux GCS if needed — download the AppImage, `chmod +x` it, and run directly. It can connect to the same SITL instance (default UDP port 14550) alongside or instead of MAVProxy.
-
-**Common first-run dependency gaps** (all fixed with `pip install --break-system-packages`):
-- `empy==3.3.4` — required for the SITL build itself
-- `MAVProxy` — the ground control station
-- `future` — required by MAVProxy's console module
-- `matplotlib` — required for MAVProxy's console GUI
-- `opencv-python` — required for MAVProxy's map module
-
-### Running a mission
+**4. Install dependencies and run:**
 
 ```bash
-python3 drone.py
+pip install -r requirements.txt
+python3 main.py
 ```
 
-Update the `tcp` connection string and mission file `path` in `drone.py` to match your setup. By default it connects to `tcp:127.0.0.1:5763` (SITL's default output port) and expects a QGC WPL-format waypoint file.
+In simulation, `main.py` connects to `tcp:127.0.0.1:5763` and uses the desktop webcam for gestures.
+
+Common first-run dependency gaps (fixed with `pip install --break-system-packages`): `empy==3.3.4`, `MAVProxy`, `future`, `matplotlib`, `opencv-python`.
+
+### On the drone (Raspberry Pi)
+
+```bash
+python3 main.py
+```
+
+### Small test flights
+
+The `scripts/` folder has single-purpose flights (`takeoff.py`, `move_square.py`, `move_circle.py`, `move_figure_eight.py`, `video_capture.py`). Each one creates its own drone connection, so don't import them into other files. Example:
+
+```bash
+python3 scripts/takeoff.py
+```
+
+### Tests
+
+- `tests/motor_test.py` spins each motor briefly.
+- `tests/connection_test.py` checks for a heartbeat
 
 ## Roadmap
 
-- [✓] Physical build: Holybro X650 frame, Pixhawk 6C, 6S power system
-- [✓] Raspberry Pi 5 companion computer (headless Ubuntu Server) bridging to the Pixhawk over UART
-- [✓] Battery failsafe handling via `SYS_STATUS.voltage_battery`
-- [✓] Real-world flight testing (CAA Flyer ID / Operator ID obtained)
-- [✓] Onboard video feed + image recognition for hand-signal control
-- [ ] Migration to Jetson Orin Nano + ROS2/MAVROS for onboard compute
-- [ ] Drone swarm — Jetson Orin Nano mothership directing multiple vehicles
+- [x] Physical build: Holybro X500, Pixhawk 6C, Raspberry Pi 5 companion computer
+- [x] Pi bridged to the Pixhawk over UART
+- [x] Real-world flight testing (CAA Flyer ID / Operator ID obtained)
+- [x] Onboard video feed and hand-signal control
+- [x] Low-battery RTL check (written, not currently switched on)
+- [ ] Migration to Jetson Orin Nano with ROS2 / MAVROS
+- [ ] Drone swarm, with a Jetson Orin Nano mothership directing multiple vehicles
 
 ## Notes
 
-This project started as a way to build hands-on experience with autonomous systems ahead of a career in defence/autonomy engineering. Simulation-first development was a deliberate choice — proving out arming, mission logic, and failure handling in Gazebo before any of it touches a real airframe.
+This project started as a way to build hands-on experience with autonomous systems ahead of a possible career in defence or automation. Simulation testing first is the way to go so as not to potentially damage a real drone.
