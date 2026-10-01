@@ -1,14 +1,14 @@
 # Semi-Autonomous Drone System
 
-First-year Data Science & AI student building a drone as a personal project. Don't expect anything polished, I'm documenting the journey as I go. This was my first time using Linux, connecting programs together, and using GitHub.
+Second-year Software Engineering student building a drone as a personal project. Don't expect anything super polished, I'm documenting the journey as I go! This was my first time using Linux, connecting programs together, and using GitHub.
 
-A flight control system built around **ArduPilot** and **pymavlink**, developed in **Gazebo Harmonic / SITL** simulation and now flown on a real **Holybro X500** quadcopter with a **Raspberry Pi 5** companion computer. The drone can be commanded by **hand signals**: a camera counts the fingers I hold up and each number triggers a different mission.
+A flight control system built around **ArduPilot** and **pymavlink**, developed in **Gazebo Harmonic / SITL** simulation and flown on a real **Holybro X500** quadcopter with a **Raspberry Pi 5** companion computer. The drone can be commanded by **hand signals**: a camera counts the fingers I hold up and the total triggers a specific mission.
 
-The core of the project is a custom Python `Drone` class that wraps pymavlink to handle mode switching, arming, takeoff, waypoint missions, and flight patterns.
+The core of the project is a custom Python `Drone` class that wraps pymavlink to handle mode switching, arming, takeoff, waypoint missions, flight patterns, position monitoring and battery checks.
 
-The long-term goal is a drone swarm, with a mothership on an Nvidia Jetson Orin Nano directing the rest of the fleet.
+The long-term goal is a drone swarm, with a mothership on an Nvidia Jetson Orin Nano directing the rest of the swarm.
 
-## Features
+## Features - WIP
 
 - **Gesture control**: MediaPipe hand tracking counts fingers (1-10, using both hands). A gesture must be held for 15 frames in a row before it triggers
 - **Flight patterns**: square, circle and figure-eight, flown using velocity vectors for smooth movement
@@ -33,7 +33,6 @@ The long-term goal is a drone swarm, with a mothership on an Nvidia Jetson Orin 
 - **M10 GPS Receiver:** For Loitering and position tracking
 - **Telemetry radio:** SiK radio link to the ground, used for live tracking in the field
 - **ELRS Receiver:** For radio control via a RadioMaster Pocket
-- 
 
 ## Software stack
 
@@ -78,7 +77,7 @@ Waypoint files are in the standard **QGC WPL 110** format (exported by QGroundCo
 
 Gestures 2-4 only run if the drone is armed and above 0.5 m. It climbs to 10 m, flies the pattern, then drops back to 1.5 m ready for the next command. Pressing CTRL+C also lands and disarms.
 
-### Flight patterns
+### Flight patterns - More to come...
 
 - **Circle:** velocity vectors sent every 0.1 s, with the drone facing the centre. Speed scales with radius (based on 5 m/s at a 15 m radius, capped at 10 m/s). My first version (`fly_circle_terrible`) stopped at every point and was very jittery, so it is kept next to the good one for comparison
 - **Figure-eight:** two mirrored circles
@@ -106,7 +105,7 @@ gz sim -v4 -r iris_runway.sdf
 sim_vehicle.py -v ArduCopter -f gazebo-iris --model JSON --console
 ```
 
-**3. Open QGroundControl** (download the AppImage, `chmod +x` it and run it). It connects to SITL on UDP 14550 and shows the simulated drone alongside Gazebo.
+**3. In a third terminal, open QGroundControl** (download the AppImage, `chmod +x` it and run it). It connects to SITL on UDP 14550 and shows the simulated drone alongside Gazebo.
 
 **4. Install dependencies and run:**
 
