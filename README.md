@@ -23,10 +23,10 @@ The long-term goal is a drone swarm, with a mothership on an Nvidia Jetson Orin 
 
 - **Frame:** Holybro X500
 - **Motors:** 4 x Holybro 2216 KV920
-- **ESCs:** BLHeli S 20A, with XT30 power connectors
+- **ESCs:** 4 x BLHeli S 20A, with XT30 power connectors
 - **Props:** 4 x 10" propellors
 - **Flight controller:** Pixhawk 6C running ArduCopter
-- **Power:** 4S LiPo
+- **Power:** 4S LiPo (5200 mAh)
 - **Companion computer:** Raspberry Pi 5 (headless Ubuntu Server), connected to the flight controller over UART (TELEM3, `/dev/ttyAMA0`, 921600 baud)
 - **5A Step Down Lead:** Safely provides power to the Raspberry Pi
 - **Camera:** Raspberry Pi camera, read with `picamera2`
