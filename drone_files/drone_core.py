@@ -20,7 +20,7 @@ class Drone_Core():
             self.vehicle.target_system,
             self.vehicle.target_component,
             mavutil.mavlink.MAV_DATA_STREAM_ALL,
-            6, # 6 Hz
+            6,  # 6 Hz
             1   # start streaming
         )
 
@@ -31,7 +31,7 @@ class Drone_Core():
             self.vehicle.target_system,
             self.vehicle.target_component,
             mavutil.mavlink.MAV_DATA_STREAM_ALL,
-            10,
+            6,
             0 # stop streaming
         )
 

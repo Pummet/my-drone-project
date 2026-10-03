@@ -70,7 +70,7 @@ class Drone_Waypoints():
 
             now = time.time()
 
-            # self.check_battery() # Commented out as no battery
+            # self.check_battery() # Commented out as no battery in sim
 
             if miss_prog.seq != 0: # Fault when seq and total = 0 as WPs first load
 

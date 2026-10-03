@@ -30,7 +30,7 @@ class Drone_Wrappers():
                 self.close()
                 return True
             
-        print("LAND failed after 3 attempts, TAKE MANUAL CONTROL!\n" * 5)
+        print("LAND failed after 3 attempts, TAKE MANUAL CONTROL!\n" * 20)
         return False
 
 
